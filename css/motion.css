@@ -1,0 +1,154 @@
+/* ============================================================
+   motion.css — every entrance, press, transition and reveal.
+   Only transform, opacity and filter are animated so a
+   mid-range phone can hold 60fps.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1.  View Transitions — page navigation
+   ---------------------------------------------------------- */
+@view-transition { navigation: auto; }
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: .35s;
+  animation-timing-function: var(--ease-out);
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { animation-name: vt-fade-out; }
+::view-transition-new(root) { animation-name: vt-fade-in; }
+
+@keyframes vt-fade-out {
+  from { opacity: 1; filter: blur(0); }
+  to   { opacity: 0; filter: blur(6px); }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; filter: blur(6px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+/* ----------------------------------------------------------
+   2.  Card entrance — staggered fade-up
+   ---------------------------------------------------------- */
+.fade-up {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.fade-up.in {
+  animation: fade-up-in .5s var(--ease-out) both;
+}
+@keyframes fade-up-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Drop [data-stagger] on a container; core.js walks its children
+   and sets --i (index) so the delay cascades 40 ms at a time. */
+[data-stagger] > * {
+  opacity: 0;
+  transform: translateY(12px);
+}
+[data-stagger].in > * {
+  animation: fade-up-in .5s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+/* ----------------------------------------------------------
+   3.  Press + tilt
+   ---------------------------------------------------------- */
+.press {
+  transition: transform .22s var(--ease-spring);
+  will-change: transform;
+}
+.press:active { transform: scale(.97); }
+
+/* Desktop-only card tilt (max 5°). Applied by core.js. */
+.tilt {
+  transform-style: preserve-3d;
+  transition: transform .3s var(--ease-out);
+  will-change: transform;
+}
+
+/* ----------------------------------------------------------
+   4.  Rings and bars animate on first view
+   ---------------------------------------------------------- */
+@keyframes ring-draw {
+  from { stroke-dashoffset: var(--ring-len, 300); }
+  to   { stroke-dashoffset: var(--ring-offset, 0); }
+}
+.ring-anim { animation: ring-draw 1s var(--ease-out) both; }
+
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.bar-anim {
+  transform-origin: left center;
+  animation: bar-grow .8s var(--ease-out) both;
+}
+
+/* ----------------------------------------------------------
+   5.  Toasts (see glass.css for the base style)
+   ---------------------------------------------------------- */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-10px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px) scale(.98); }
+}
+
+/* ----------------------------------------------------------
+   6.  Checkmark draw (report submitted)
+   ---------------------------------------------------------- */
+@keyframes check-draw {
+  from { stroke-dashoffset: var(--len, 40); }
+  to   { stroke-dashoffset: 0; }
+}
+.check-draw {
+  stroke-dasharray: var(--len, 40);
+  animation: check-draw .5s var(--ease-out) both;
+}
+
+/* ----------------------------------------------------------
+   7.  Theme switch — circular reveal from the toggle
+   core.js sets --reveal-x / -y / -r, then adds .theme-reveal
+   to <html> before calling startViewTransition().
+   ---------------------------------------------------------- */
+html.theme-reveal::view-transition-old(root) { animation: none; }
+html.theme-reveal::view-transition-new(root) {
+  animation: theme-reveal .55s var(--ease-out) both;
+}
+@keyframes theme-reveal {
+  from { clip-path: circle(0 at var(--reveal-x, 100%) var(--reveal-y, 0%)); }
+  to   { clip-path: circle(var(--reveal-r, 120vmax) at
+                          var(--reveal-x, 100%) var(--reveal-y, 0%)); }
+}
+
+/* ----------------------------------------------------------
+   8.  Skeleton shimmer
+   ---------------------------------------------------------- */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* ----------------------------------------------------------
+   9.  Reduced motion — crossfades only, no movement
+   ---------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .fade-up,
+  [data-stagger] > * { opacity: 1; transform: none; }
+  .blob { animation: none !important; }
+  .glass::before { opacity: 0 !important; }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-name: vt-fade-out, vt-fade-in !important;
+    animation-duration: .2s !important;
+  }
+}

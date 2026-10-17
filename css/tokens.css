@@ -1,0 +1,164 @@
+/* ============================================================
+   tokens.css — the single source of truth.
+   Every colour, type step, radius, shadow and glass value lives
+   here. Other files only read from these variables so the
+   light / dark / auto themes never drift apart.
+   ============================================================ */
+
+:root {
+  /* ---- Brand accent (system blue) ---- */
+  --blue:      #007AFF;
+  --blue-ink:  #0062CC;              /* pressed / darker */
+  --blue-soft: rgba(0, 122, 255, .12);
+
+  /* ---- Semantic status colours ---- */
+  --green:  #34C759;
+  --orange: #FF9500;
+  --red:    #FF3B30;
+  --purple: #AF52DE;
+
+  /* ---- Neutrals (light) ---- */
+  --ink-1: #1C1C1E;                  /* primary text       */
+  --ink-2: #3A3A3C;                  /* secondary text     */
+  --ink-3: #6C6C70;                  /* tertiary text      */
+  --ink-4: #8E8E93;                  /* quaternary / meta  */
+  --line:  rgba(60, 60, 67, .16);
+  --fill-1: rgba(120, 120, 128, .12);   /* subtle fills     */
+  --fill-2: rgba(120, 120, 128, .20);   /* stronger fills   */
+  --surface-1: #FFFFFF;
+  --surface-2: #F2F2F7;
+
+  /* ---- App background (light) ---- */
+  --bg-1: #F2F4F9;
+  --bg-2: #EAF0FB;
+
+  /* ---- Type scale — Apple's spec ---- */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+
+  --fs-large-title: 34px; --lh-large-title: 41px; --tr-large-title: -0.022em;
+  --fs-title:       28px; --lh-title:       34px; --tr-title:       -0.020em;
+  --fs-headline:    17px; --lh-headline:    22px; --tr-headline:    -0.011em;
+  --fs-body:        17px; --lh-body:        22px; --tr-body:        -0.011em;
+  --fs-subhead:     15px; --lh-subhead:     20px; --tr-subhead:     -0.009em;
+  --fs-foot:        13px; --lh-foot:        18px; --tr-foot:        -0.006em;
+  --fs-caption:     12px; --lh-caption:     16px; --tr-caption:      0;
+
+  /* ---- 8-pt spacing grid ---- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px;
+
+  /* ---- Concentric radii (inner = outer − padding) ---- */
+  --r-1: 8px; --r-2: 12px; --r-3: 16px; --r-4: 20px; --r-5: 28px;
+  --r-pill: 999px;
+
+  /* ---- Elevation (three steps + focus) ---- */
+  --sh-1: 0 1px 2px rgba(15, 20, 40, .06), 0 1px 1px rgba(15, 20, 40, .04);
+  --sh-2: 0 8px 24px rgba(15, 20, 40, .10), 0 2px 6px rgba(15, 20, 40, .06);
+  --sh-3: 0 24px 60px rgba(15, 20, 40, .18), 0 6px 16px rgba(15, 20, 40, .10);
+  --sh-focus: 0 0 0 4px rgba(0, 122, 255, .35);
+
+  /* ---- The glass recipe ---- */
+  --glass-fill:        rgba(255, 255, 255, .14);
+  --glass-fill-strong: rgba(255, 255, 255, .22);
+  --glass-fill-soft:   rgba(255, 255, 255, .09);
+  --glass-border:      rgba(255, 255, 255, .28);
+  --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, .55);
+  --glass-blur:        22px;
+  --glass-saturate:    180%;
+
+  /* ---- Living background blobs ---- */
+  --blob-1: #7AB8FF;
+  --blob-2: #FFB8D8;
+  --blob-3: #A5E8C8;
+  --blob-4: #FFD9A0;
+
+  /* ---- Motion ---- */
+  --ease-out:    cubic-bezier(.2, .8, .2, 1);
+  --ease-in-out: cubic-bezier(.4, 0, .2, 1);
+  /* A believable spring, expressed as a linear() stop list.
+     Bounce is tiny because Apple's springs settle cleanly. */
+  --ease-spring: linear(
+    0, 0.006, 0.025, 0.101 4.4%, 0.268 6.8%, 0.535 9.6%,
+    0.766 12%, 0.898 14.4%, 0.962 16.4%, 0.997 19.6%,
+    1.007 24%, 1.003 29.2%, 0.998 36.8%, 0.999 48%, 1
+  );
+
+  /* ---- Layout ---- */
+  --content-max:  1160px;
+  --nav-h:        64px;
+  --tab-h:        68px;
+  --safe-top:     env(safe-area-inset-top, 0px);
+  --safe-bottom:  env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================================================
+   DARK THEME — every value kept in the same contrast band.
+   ============================================================ */
+:root[data-theme="dark"] {
+  --blue:      #0A84FF;
+  --blue-ink:  #0A6FD8;
+  --blue-soft: rgba(10, 132, 255, .18);
+
+  --green:  #30D158;
+  --orange: #FF9F0A;
+  --red:    #FF453A;
+  --purple: #BF5AF2;
+
+  --ink-1: #F2F2F7;
+  --ink-2: #D1D1D6;
+  --ink-3: #A1A1A6;
+  --ink-4: #8E8E93;
+  --line:  rgba(255, 255, 255, .14);
+  --fill-1: rgba(120, 120, 128, .24);
+  --fill-2: rgba(120, 120, 128, .36);
+  --surface-1: #1C1C1E;
+  --surface-2: #2C2C2E;
+
+  --bg-1: #0B0D14;
+  --bg-2: #12151F;
+
+  --glass-fill:        rgba(40, 44, 60, .32);
+  --glass-fill-strong: rgba(60, 66, 84, .44);
+  --glass-fill-soft:   rgba(40, 44, 60, .20);
+  --glass-border:      rgba(255, 255, 255, .14);
+  --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, .16);
+
+  --sh-1: 0 1px 2px rgba(0, 0, 0, .40);
+  --sh-2: 0 10px 30px rgba(0, 0, 0, .44), 0 2px 6px rgba(0, 0, 0, .30);
+  --sh-3: 0 28px 70px rgba(0, 0, 0, .60), 0 8px 20px rgba(0, 0, 0, .40);
+
+  --blob-1: #2C5CFF;
+  --blob-2: #B14BFF;
+  --blob-3: #00A5A5;
+  --blob-4: #FF7A00;
+}
+
+/* ============================================================
+   ACCESSIBILITY FALLBACKS — solid surfaces when the person has
+   asked the OS to remove transparency / boost contrast.
+   ============================================================ */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-fill:        var(--surface-1);
+    --glass-fill-strong: var(--surface-1);
+    --glass-fill-soft:   var(--surface-2);
+    --glass-border:      var(--line);
+    --glass-highlight:   none;
+    --glass-blur:        0px;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --glass-fill:        var(--surface-1);
+    --glass-fill-strong: var(--surface-1);
+    --glass-border:      var(--ink-1);
+    --line:              var(--ink-1);
+  }
+  :root[data-theme="dark"] {
+    --glass-border: var(--ink-1);
+    --line:         var(--ink-1);
+  }
+}

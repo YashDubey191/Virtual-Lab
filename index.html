@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F2F4F9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0B0D14" media="(prefers-color-scheme: dark)">
+  <title>Virtual Lab</title>
+  <meta name="description" content="Run college lab experiments in the browser — simulate, record, plot, submit.">
+
+  <!-- Inter is the only external request. It only kicks in when the OS
+       doesn't have SF Pro / system-ui. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/motion.css">
+  <link rel="stylesheet" href="css/screens.css">
+</head>
+<body>
+  <!-- All app UI is rendered into #app by the scripts below. -->
+  <div id="app"></div>
+
+  <!-- Toast region lives outside #app so it survives view swaps. -->
+  <div class="toast-region" role="status" aria-live="polite"></div>
+
+  <script defer src="js/core.js"></script>
+  <script defer src="js/simulators.js"></script>
+  <script defer src="js/student.js"></script>
+  <script defer src="js/admin.js"></script>
+</body>
+</html>

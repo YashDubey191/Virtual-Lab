@@ -1,0 +1,634 @@
+/* ============================================================
+   glass.css — the Liquid Glass surface language + every core
+   component built on it.
+
+   Rule of the house: a backdrop-filter element is NEVER placed
+   inside another backdrop-filter element (Safari/Chrome silently
+   drop the inner one). Anything that sits on top of glass uses
+   the `.on-glass` plain-translucent recipe instead.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1.  Page shell
+   ---------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: var(--tr-body);
+  color: var(--ink-1);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--bg-2), var(--bg-1) 70%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  font-variant-numeric: normal;
+}
+
+h1, h2, h3, h4, h5, p { margin: 0; }
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Numbers we care about align — readings, scores, timers. */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* ----------------------------------------------------------
+   2.  Living background — blobs + grain
+   ---------------------------------------------------------- */
+.bg-blobs,
+.bg-noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.bg-blobs { z-index: -2; overflow: hidden; }
+
+.bg-noise {
+  z-index: -1;
+  opacity: .035;
+  mix-blend-mode: overlay;
+  /* A tiny tiled fractal-noise SVG — no external request. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: .55;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+.blob-1 {
+  width: 46vmax; height: 46vmax; left: -12vmax; top: -10vmax;
+  background: radial-gradient(circle at 30% 30%, var(--blob-1), transparent 62%);
+  animation: drift-1 44s var(--ease-in-out) infinite;
+}
+.blob-2 {
+  width: 38vmax; height: 38vmax; right: -10vmax; top: 10vmax;
+  background: radial-gradient(circle at 60% 40%, var(--blob-2), transparent 62%);
+  animation: drift-2 52s var(--ease-in-out) infinite;
+}
+.blob-3 {
+  width: 42vmax; height: 42vmax; left: 18vmax; bottom: -16vmax;
+  background: radial-gradient(circle at 50% 60%, var(--blob-3), transparent 62%);
+  animation: drift-3 38s var(--ease-in-out) infinite;
+}
+.blob-4 {
+  width: 30vmax; height: 30vmax; right: 10vmax; bottom: 4vmax;
+  background: radial-gradient(circle at 40% 50%, var(--blob-4), transparent 62%);
+  animation: drift-4 48s var(--ease-in-out) infinite;
+}
+
+@keyframes drift-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(6vmax, 4vmax, 0) scale(1.08); }
+}
+@keyframes drift-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-5vmax, 6vmax, 0) scale(1.05); }
+}
+@keyframes drift-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(4vmax, -6vmax, 0) scale(1.06); }
+}
+@keyframes drift-4 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-6vmax, -3vmax, 0) scale(1.04); }
+}
+
+/* ----------------------------------------------------------
+   3.  Glass surface — the one recipe
+   ---------------------------------------------------------- */
+.glass {
+  position: relative;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter:         blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sh-2), var(--glass-highlight);
+  border-radius: var(--r-3);
+  color: var(--ink-1);
+}
+
+/* Specular highlight — a soft radial that follows the pointer.
+   --mx / --my are set by core.js on pointermove. */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(255, 255, 255, .28),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity .35s var(--ease-out);
+  pointer-events: none;
+}
+.glass:hover::before { opacity: 1; }
+
+.glass--strong { background: var(--glass-fill-strong); }
+.glass--soft   { background: var(--glass-fill-soft); }
+.glass--sharp  { border-radius: var(--r-2); }
+.glass--round  { border-radius: var(--r-4); }
+
+/* Optional edge refraction. The two backdrop-filter lines give a
+   plain blur fallback for browsers that don't understand url(). */
+.glass--refract {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter:         blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: url(#vl-refract) blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter:         url(#vl-refract) blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+/* The rule above means: anything sitting inside a glass panel
+   uses a plain translucent fill, never another backdrop-filter. */
+.on-glass {
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .20);
+}
+:root[data-theme="dark"] .on-glass {
+  background: rgba(255, 255, 255, .08);
+  border-color: rgba(255, 255, 255, .10);
+}
+
+/* Hard fallback when the browser can't blur at all. */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .glass { background: var(--surface-1); }
+  .glass::before { display: none; }
+}
+
+/* ----------------------------------------------------------
+   4.  Buttons
+   ---------------------------------------------------------- */
+.btn {
+  --mx: 50%; --my: 50%;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-pill);
+  font: 600 var(--fs-subhead)/1 var(--font-sans);
+  letter-spacing: var(--tr-subhead);
+  color: var(--ink-1);
+  background: var(--glass-fill-strong);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  backdrop-filter:         blur(14px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    transform .22s var(--ease-spring),
+    background .2s var(--ease-out),
+    color .2s var(--ease-out),
+    border-color .2s var(--ease-out);
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(180px circle at var(--mx) var(--my),
+    rgba(255, 255, 255, .40), transparent 66%);
+  opacity: 0;
+  transition: opacity .3s var(--ease-out);
+  pointer-events: none;
+}
+.btn:hover::before { opacity: 1; }
+.btn:active { transform: scale(.97); }
+.btn:focus-visible { outline: none; box-shadow: var(--glass-highlight), var(--sh-focus); }
+.btn[disabled], .btn[aria-disabled="true"] {
+  opacity: .48;
+  pointer-events: none;
+}
+.btn svg { width: 18px; height: 18px; flex: none; }
+
+.btn--primary {
+  background: var(--blue);
+  color: #fff;
+  border-color: rgba(255, 255, 255, .16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .30),
+    0 8px 20px rgba(0, 122, 255, .28);
+}
+.btn--primary:active { background: var(--blue-ink); }
+
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn--ghost:hover { background: var(--fill-1); }
+
+.btn--danger { color: var(--red); }
+.btn--danger.btn--primary {
+  background: var(--red);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .26), 0 8px 20px rgba(255, 59, 48, .26);
+}
+
+.btn--sm   { min-height: 34px; padding: 0 var(--s-3); font-size: var(--fs-foot); }
+.btn--lg   { min-height: 52px; padding: 0 var(--s-5); font-size: var(--fs-body); }
+.btn--icon { min-width: 44px; padding: 0; }
+
+/* ----------------------------------------------------------
+   5.  Cards
+   ---------------------------------------------------------- */
+.card {
+  padding: var(--s-5);
+  border-radius: var(--r-4);
+}
+.card--hero { padding: var(--s-6); border-radius: var(--r-5); }
+.card--tight { padding: var(--s-4); }
+
+.card__eyebrow {
+  font: 600 var(--fs-caption)/var(--lh-caption) var(--font-sans);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: var(--s-2);
+}
+.card__title {
+  font-size: var(--fs-headline);
+  line-height: var(--lh-headline);
+  letter-spacing: var(--tr-headline);
+  font-weight: 600;
+}
+.card__sub {
+  color: var(--ink-3);
+  font-size: var(--fs-subhead);
+  line-height: var(--lh-subhead);
+  margin-top: 2px;
+}
+
+/* ----------------------------------------------------------
+   6.  Form fields
+   ---------------------------------------------------------- */
+.field { display: flex; flex-direction: column; gap: var(--s-2); }
+.field__label {
+  font-size: var(--fs-foot);
+  line-height: var(--lh-foot);
+  letter-spacing: var(--tr-foot);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.field__hint {
+  font-size: var(--fs-caption);
+  color: var(--ink-4);
+}
+.field__error {
+  font-size: var(--fs-caption);
+  color: var(--red);
+}
+
+.input, .textarea, .select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--r-2);
+  background: rgba(255, 255, 255, .10);
+  border: 1px solid var(--glass-border);
+  color: var(--ink-1);
+  font: 400 var(--fs-body)/var(--lh-body) var(--font-sans);
+  letter-spacing: var(--tr-body);
+  transition:
+    background .2s var(--ease-out),
+    border-color .2s var(--ease-out),
+    box-shadow .2s var(--ease-out);
+}
+:root[data-theme="dark"] .input,
+:root[data-theme="dark"] .textarea,
+:root[data-theme="dark"] .select { background: rgba(255, 255, 255, .06); }
+
+.input::placeholder, .textarea::placeholder { color: var(--ink-4); }
+.input:hover, .textarea:hover { border-color: rgba(255, 255, 255, .40); }
+
+.input:focus, .textarea:focus, .select:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: var(--sh-focus);
+  background: rgba(255, 255, 255, .14);
+}
+
+.textarea { min-height: 120px; resize: vertical; padding: 12px 14px; }
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.input-group { display: flex; gap: var(--s-2); align-items: center; }
+
+/* ----------------------------------------------------------
+   7.  Segmented switch (used on sign-in and everywhere)
+   ---------------------------------------------------------- */
+.segmented {
+  position: relative;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--fill-1);
+  border: 1px solid var(--glass-border);
+  isolation: isolate;
+}
+.segmented__thumb {
+  position: absolute;
+  top: 3px; bottom: 3px; left: 3px;
+  width: calc(50% - 3px);
+  border-radius: var(--r-pill);
+  background: var(--surface-1);
+  box-shadow: var(--sh-1);
+  transition: transform .3s var(--ease-spring), width .3s var(--ease-spring);
+  will-change: transform;
+}
+.segmented--three .segmented__thumb { width: calc(33.333% - 3px); }
+.segmented__btn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 38px;
+  padding: 0 var(--s-4);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-pill);
+  font: 600 var(--fs-subhead)/1 var(--font-sans);
+  letter-spacing: var(--tr-subhead);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color .2s var(--ease-out);
+}
+.segmented__btn[aria-selected="true"] { color: var(--ink-1); }
+.segmented__btn:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+
+/* ----------------------------------------------------------
+   8.  Tabs + chips
+   ---------------------------------------------------------- */
+.tabs { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.tab {
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-3);
+  font: 500 var(--fs-subhead)/1 var(--font-sans);
+  cursor: pointer;
+  transition: background .2s var(--ease-out), color .2s var(--ease-out);
+}
+.tab:hover { color: var(--ink-1); background: var(--fill-1); }
+.tab[aria-selected="true"] { color: var(--ink-1); background: var(--fill-2); }
+.tab:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  background: var(--fill-1);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: var(--fs-foot);
+  line-height: 1;
+  letter-spacing: var(--tr-foot);
+}
+.chip--blue   { background: var(--blue-soft); color: var(--blue); border-color: transparent; }
+.chip--green  { background: rgba(52, 199, 89, .14);  color: var(--green);  border-color: transparent; }
+.chip--orange { background: rgba(255, 149, 0, .14);  color: var(--orange); border-color: transparent; }
+.chip--red    { background: rgba(255, 59, 48, .14);  color: var(--red);    border-color: transparent; }
+
+/* ----------------------------------------------------------
+   9.  Modal, drawer, scrim
+   ---------------------------------------------------------- */
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 20, .32);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter:         blur(8px);
+  z-index: 80;
+  opacity: 0;
+  transition: opacity .3s var(--ease-out);
+}
+.modal-scrim.open { opacity: 1; }
+
+.modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(.96);
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(80dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-5);
+  opacity: 0;
+  z-index: 81;
+  transition:
+    transform .35s var(--ease-out),
+    opacity .25s var(--ease-out);
+}
+.modal.open { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+.modal__title {
+  font-size: var(--fs-headline);
+  line-height: var(--lh-headline);
+  letter-spacing: var(--tr-headline);
+  font-weight: 600;
+}
+.modal__body { padding: var(--s-5); overflow: auto; }
+.modal__foot {
+  display: flex;
+  gap: var(--s-2);
+  justify-content: flex-end;
+  padding: var(--s-4) var(--s-5);
+  border-top: 1px solid var(--line);
+}
+
+.drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(440px, 100vw);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-5) 0 0 var(--r-5);
+  transform: translateX(105%);
+  z-index: 81;
+  transition: transform .4s var(--ease-out);
+}
+.drawer.open { transform: translateX(0); }
+
+/* Mobile: sheets slide up from the bottom instead of across. */
+@media (max-width: 720px) {
+  .modal, .drawer {
+    top: auto; left: 0; right: 0; bottom: 0;
+    width: 100%;
+    max-height: 90dvh;
+    border-radius: var(--r-5) var(--r-5) 0 0;
+    transform: translateY(100%);
+    padding-bottom: var(--safe-bottom);
+  }
+  .modal.open, .drawer.open { transform: translateY(0); }
+
+  /* Drag handle — the sheet is dismissible by dragging it down. */
+  .modal::before, .drawer::before {
+    content: "";
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 8px auto 0;
+    border-radius: 2px;
+    background: var(--fill-2);
+    flex: none;
+  }
+}
+
+/* ----------------------------------------------------------
+   10. Toasts
+   ---------------------------------------------------------- */
+.toast-region {
+  position: fixed;
+  top: calc(var(--safe-top) + 16px);
+  right: 16px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  pointer-events: none;
+  max-width: min(360px, calc(100vw - 32px));
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-3);
+  font-size: var(--fs-subhead);
+  line-height: var(--lh-subhead);
+  color: var(--ink-1);
+  cursor: grab;
+  touch-action: pan-y;
+  animation: toast-in .4s var(--ease-out) both;
+  will-change: transform, opacity;
+}
+.toast.out { animation: toast-out .25s var(--ease-out) both; }
+.toast__icon { flex: none; width: 20px; height: 20px; margin-top: 1px; display: inline-flex; }
+.toast__icon svg { width: 20px; height: 20px; }
+.toast__msg { flex: 1; }
+.toast--success .toast__icon { color: var(--green); }
+.toast--error   .toast__icon { color: var(--red); }
+.toast--info    .toast__icon { color: var(--blue); }
+.toast--warn    .toast__icon { color: var(--orange); }
+
+/* ----------------------------------------------------------
+   11. Skeleton loader
+   ---------------------------------------------------------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--fill-1);
+  border-radius: var(--r-2);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, .35),
+    transparent);
+  animation: shimmer 1.2s infinite;
+  pointer-events: none;
+}
+:root[data-theme="dark"] .skeleton::after {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, .10),
+    transparent);
+}
+.skeleton--line  { height: 14px; border-radius: var(--r-pill); }
+.skeleton--block { height: 96px; }
+
+/* ----------------------------------------------------------
+   12. Avatars, dots, progress bars
+   ---------------------------------------------------------- */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--fill-2);
+  color: var(--ink-2);
+  font: 600 var(--fs-foot)/1 var(--font-sans);
+  letter-spacing: .02em;
+  flex: none;
+}
+.avatar--lg { width: 48px; height: 48px; font-size: var(--fs-subhead); }
+
+/* Difficulty meter on experiment cards — filled dots. */
+.dots { display: inline-flex; gap: 4px; }
+.dots span {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--fill-2);
+}
+.dots span.on { background: var(--blue); }
+
+.bar {
+  position: relative;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--fill-1);
+  overflow: hidden;
+}
+.bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--blue);
+  border-radius: inherit;
+  transform-origin: left center;
+}
+.bar__fill--green  { background: var(--green); }
+.bar__fill--orange { background: var(--orange); }
+
+/* ----------------------------------------------------------
+   13. Focus ring — visible everywhere, glassy, accessible
+   ---------------------------------------------------------- */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--sh-focus);
+  border-radius: var(--r-1);
+}
+.glass:focus-visible,
+.btn:focus-visible { border-radius: inherit; }
