@@ -1,0 +1,83 @@
+/* ============================================================
+   bg-science.css — Phase 4: floating scientific background.
+
+   A third layer behind the existing `.bg-blobs` + `.bg-noise`.
+   Contains formulas, atoms, molecules, circuits, a flask, a DNA
+   helix, and magnetic field lines. Every element is animated with
+   transform only (60fps on phones), respects prefers-reduced-motion,
+   and is pointer-events:none so it never blocks the UI.
+   ============================================================ */
+
+.bg-science {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  color: var(--ink-1);
+  font-family: var(--font-sans);
+}
+
+.bg-science .sci {
+  position: absolute;
+  opacity: 0.7;
+  will-change: transform;
+  animation: sci-drift var(--dur, 28s) var(--ease-in-out) infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+:root[data-theme="dark"] .bg-science .sci { opacity: .13; }
+
+.bg-science .sci--text {
+  font-weight: 500;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1;
+  letter-spacing: -.01em;
+}
+
+.bg-science .sci > svg,
+.bg-science .sci__inner > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bg-science .sci__inner {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.bg-science .sci__inner.sci--spin {
+  animation: sci-spin var(--spin-dur, 90s) linear infinite;
+}
+
+@keyframes sci-drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  25%  { transform: translate3d(var(--dx1, 12px), var(--dy1, -18px), 0); }
+  50%  { transform: translate3d(var(--dx2, -10px), var(--dy2, -30px), 0); }
+  75%  { transform: translate3d(var(--dx3, -14px), var(--dy3, -12px), 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes sci-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Mobile — quieter layer so text stays very readable on small screens */
+@media (max-width: 720px) {
+  .bg-science .sci { opacity: .06; }
+  :root[data-theme="dark"] .bg-science .sci { opacity: .09; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-science .sci { animation: none !important; }
+  .bg-science .sci__inner.sci--spin { animation: none !important; }
+}

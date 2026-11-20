@@ -310,7 +310,6 @@
     svg.appendChild(el('path', { d: area, fill: 'url(#' + gradId + ')', stroke: 'none' }));
     svg.appendChild(el('path', { d: path, fill: 'none', stroke: 'var(--blue)', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
 
-    // Today's dot
     const last = coords[coords.length - 1];
     svg.appendChild(el('circle', { cx: last[0], cy: last[1], r: 4, fill: 'var(--blue)', stroke: '#fff', 'stroke-width': 2 }));
   }
@@ -325,10 +324,8 @@
     const pending = subs.filter(s => s.status === 'pending');
     const avg = averageScore(subs);
 
-    // 7-day activity from store
     const activity = (store.get('activity', []) || []).slice(-7);
 
-    // Needs attention — inactive for 5+ days.
     const cutoff = Date.now() - 5 * 86400000;
     const needsAttention = students.map(st => ({
       id: st.id, name: st.name, avatar: st.avatar, roll: st.roll,
@@ -337,7 +334,6 @@
       .sort((a, b) => (a.last || 0) - (b.last || 0))
       .slice(0, 6);
 
-    // Recent submissions
     const recent = subs.slice()
       .sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0))
       .slice(0, 5);
@@ -517,7 +513,6 @@
           </div>
         </div>`).join('');
 
-      // Wire publish toggles
       listEl.querySelectorAll('[data-publish]').forEach(sw => {
         sw.addEventListener('click', () => {
           const id = sw.dataset.publish;
@@ -532,13 +527,11 @@
         });
       });
 
-      // Edit
       listEl.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
         const e = allExperiments().find(x => x.id === b.dataset.edit);
         if (e) openEditor(e);
       }));
 
-      // Delete with 5s undo
       listEl.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
         const id = b.dataset.del;
         const idx = allExperiments().findIndex(x => x.id === id);
@@ -552,7 +545,6 @@
 
         store.update(s => {
           s.experiments = (s.experiments || []).filter(x => x.id !== id);
-          // Keep submissions but mark them orphaned so they still show in history.
         });
         toast.success(`Deleted "${removed.title}".`);
         bus.emit('data');
@@ -561,7 +553,6 @@
           store.update(s => {
             s.experiments = s.experiments || [];
             s.experiments.splice(idx, 0, removed);
-            // Re-index order
             s.experiments.forEach((x, i) => { x.order = i; });
           });
           bus.emit('data');
@@ -572,14 +563,12 @@
       wireDrag();
     }
 
-    /* --- Drag to reorder -------------------------------------- */
     function wireDrag() {
       let dragId = null;
       let dropTarget = null;
 
       listEl.querySelectorAll('.exp-row').forEach(row => {
         row.addEventListener('dragstart', (e) => {
-          // Only start a drag if the handle (or its child) was the source.
           const fromHandle = e.target.closest('.exp-row__handle');
           if (!fromHandle) { e.preventDefault(); return; }
           dragId = row.dataset.id;
@@ -624,7 +613,6 @@
       });
     }
 
-    /* --- Editor drawer ---------------------------------------- */
     function openEditor(existing) {
       const editing = !!existing;
       const draft = editing ? JSON.parse(JSON.stringify(existing)) : {
@@ -678,7 +666,6 @@
           </button>
         </div>`;
 
-      // Prefill
       const $title = body.querySelector('#ed-title');
       const $subject = body.querySelector('#ed-subject');
       const $diff = body.querySelector('#ed-diff');
@@ -694,7 +681,6 @@
       $theory.value = draft.theory || '';
       $app.value = (draft.apparatus || []).join('\n');
 
-      // Quiz builder
       const qWrap = body.querySelector('#quiz-builder');
       const questions = (draft.quiz || []).map(q => ({
         q: q.q || '',
@@ -752,7 +738,6 @@
         qWrap.querySelector('.quiz-item:last-child input')?.focus();
       });
 
-      // Footer
       const foot = document.createElement('div');
       foot.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;width:100%';
       foot.innerHTML = `
@@ -772,12 +757,14 @@
         const aim = $aim.value.trim();
         if (!aim) { $aim.focus(); toast.warn('Write a short aim.'); return; }
 
+        // Clamp `correct` to the surviving options so a blanked-out option
+        // can't leave a dangling index that breaks quiz scoring at runtime.
         const cleanedQuiz = questions
-          .map(q => ({
-            q: q.q.trim(),
-            options: q.options.map(o => o.trim()).filter(Boolean),
-            correct: q.correct
-          }))
+          .map(q => {
+            const opts = q.options.map(o => o.trim()).filter(Boolean);
+            const correct = opts.length ? Math.min(Math.max(0, q.correct), opts.length - 1) : 0;
+            return { q: q.q.trim(), options: opts, correct };
+          })
           .filter(q => q.q && q.options.length >= 2);
 
         const payload = {
@@ -807,7 +794,6 @@
       });
     }
 
-    // Search
     root.querySelector('#exp-search').addEventListener('input', (e) => {
       filter = e.target.value;
       paint();
@@ -913,7 +899,6 @@
 
     const root = document.createElement('div');
 
-    // Readings table + auto-plot
     const readings = Array.isArray(sub.readings) ? sub.readings : [];
     const keys = readings.length ? Object.keys(readings[0]) : [];
     const plotSpec = autoPlot(readings, sub.experimentId);
@@ -1003,7 +988,6 @@
         </div>
       </div>`;
 
-    // Plot
     const plotEl = root.querySelector('#rv-plot');
     const fitEl = root.querySelector('#rv-fit');
     queueMicrotask(() => {
@@ -1014,14 +998,12 @@
       paintPlot(plotEl, fitEl, pts, spec);
     });
 
-    // Score slider
     const scoreInput = root.querySelector('#score-input');
     const scoreVal = root.querySelector('#score-value');
     scoreInput.addEventListener('input', () => {
       scoreVal.innerHTML = `${scoreInput.value}<small style="font-size:14px;color:var(--ink-3);font-weight:500">/10</small>`;
     });
 
-    // Approve
     root.querySelector('#approve').addEventListener('click', () => {
       const score = Number(scoreInput.value);
       const feedback = root.querySelector('#feedback-input').value.trim();
@@ -1034,7 +1016,6 @@
       setTimeout(() => router.go('/admin/submissions'), 500);
     });
 
-    // Request changes
     root.querySelector('#ask-changes').addEventListener('click', () => {
       const feedback = root.querySelector('#feedback-input').value.trim();
       if (!feedback) {
@@ -1054,8 +1035,6 @@
     return root;
   }
 
-  /* Render a plot into an SVG element. Mirrors the one in the
-     student view but self-contained so we don't touch student.js. */
   function paintPlot(svg, fitEl, pts, spec) {
     const NS = 'http://www.w3.org/2000/svg';
     const el = (t, attrs) => { const n = document.createElementNS(NS, t); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
@@ -1107,7 +1086,6 @@
       t.textContent = niceNum(v); svg.appendChild(t);
     }
 
-    // Least-squares through origin, or OLS
     let slope = 0, intercept = 0;
     if (pts.length >= 2) {
       if (spec.throughOrigin) {
@@ -1152,7 +1130,6 @@
     return escapeHtml(String(v));
   }
 
-  /* Pick a sensible x/y from the reading row shape. */
   function autoPlot(rows, expId) {
     if (expId === 'e_pendulum')  return { x: 'L', y: 'T2', xLabel: 'Length L (m)', yLabel: 'T² (s²)', throughOrigin: true };
     if (expId === 'e_ohm')       return { x: 'I', y: 'V', xLabel: 'Current I (A)', yLabel: 'Voltage V (V)', throughOrigin: true };
@@ -1198,38 +1175,51 @@
 
     const tbody = root.querySelector('tbody');
 
-    students.forEach(st => {
-      const mine = subs.filter(s => s.studentId === st.id);
-      const done = mine.filter(s => s.status === 'pending' || s.status === 'graded').length;
-      const pct = Math.min(100, Math.round((done / totalExps) * 100));
-      const avg = averageScore(mine);
-      const last = lastActiveFor(st.id);
+    // Empty state — with demo students removed from the seed, a brand-new
+    // install will land here until real students sign in.
+    if (!students.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5">
+            <div class="empty-note">
+              No students yet. Students appear here after they sign in for the first time.
+            </div>
+          </td>
+        </tr>`;
+    } else {
+      students.forEach(st => {
+        const mine = subs.filter(s => s.studentId === st.id);
+        const done = mine.filter(s => s.status === 'pending' || s.status === 'graded').length;
+        const pct = Math.min(100, Math.round((done / totalExps) * 100));
+        const avg = averageScore(mine);
+        const last = lastActiveFor(st.id);
 
-      const tr = document.createElement('tr');
-      tr.tabIndex = 0;
-      tr.setAttribute('role', 'button');
-      tr.setAttribute('aria-label', 'Open history for ' + st.name);
-      tr.innerHTML = `
-        <td>
-          <div class="who">
-            <span class="avatar" aria-hidden="true">${escapeHtml(st.avatar || '')}</span>
-            <span style="min-width:0">
-              <b>${escapeHtml(st.name)}</b>
-              <span>${escapeHtml(st.roll || st.email || '')}</span>
-            </span>
-          </div>
-        </td>
-        <td style="min-width:160px">
-          <div class="bar"><span class="bar__fill ${pct >= 75 ? 'bar__fill--green' : pct >= 40 ? '' : 'bar__fill--orange'}" style="transform:scaleX(${pct / 100});transform-origin:left"></span></div>
-          <div style="font-size:12px;color:var(--ink-3);margin-top:4px">${done} of ${totalExps} started</div>
-        </td>
-        <td style="text-align:right" class="tnum">${mine.length}</td>
-        <td style="text-align:right" class="tnum">${avg ? avg.toFixed(1) : '—'}</td>
-        <td style="color:var(--ink-3);font-size:13px">${relativeDay(last)}</td>`;
-      tr.addEventListener('click', () => openStudent(st));
-      tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openStudent(st); } });
-      tbody.appendChild(tr);
-    });
+        const tr = document.createElement('tr');
+        tr.tabIndex = 0;
+        tr.setAttribute('role', 'button');
+        tr.setAttribute('aria-label', 'Open history for ' + st.name);
+        tr.innerHTML = `
+          <td>
+            <div class="who">
+              <span class="avatar" aria-hidden="true">${escapeHtml(st.avatar || '')}</span>
+              <span style="min-width:0">
+                <b>${escapeHtml(st.name)}</b>
+                <span>${escapeHtml(st.roll || st.email || '')}</span>
+              </span>
+            </div>
+          </td>
+          <td style="min-width:160px">
+            <div class="bar"><span class="bar__fill ${pct >= 75 ? 'bar__fill--green' : pct >= 40 ? '' : 'bar__fill--orange'}" style="transform:scaleX(${pct / 100});transform-origin:left"></span></div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:4px">${done} of ${totalExps} started</div>
+          </td>
+          <td style="text-align:right" class="tnum">${mine.length}</td>
+          <td style="text-align:right" class="tnum">${avg ? avg.toFixed(1) : '—'}</td>
+          <td style="color:var(--ink-3);font-size:13px">${relativeDay(last)}</td>`;
+        tr.addEventListener('click', () => openStudent(st));
+        tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openStudent(st); } });
+        tbody.appendChild(tr);
+      });
+    }
 
     root.querySelector('#export-csv').addEventListener('click', () => {
       const rows = [['Roll', 'Name', 'Email', 'Submitted', 'Average score', 'Last active']];
@@ -1326,17 +1316,184 @@
 
     openDrawer({ title: 'Student history', body });
   }
+    /* ============================================================
+     Batches — teacher-controlled assignments
+     ============================================================ */
+  function batchesView() {
+    const root = document.createElement('div');
+    const batches = store.get('batches', []) || [];
+    const allStudentsList = allStudents();
 
+    root.innerHTML = `
+      <div class="section-head">
+        <h2>Batches</h2>
+        <button class="btn btn--primary btn--sm" type="button" id="add-batch">
+          ${icons.svg('plus', { size: 14 })}<span>New batch</span>
+        </button>
+      </div>
+      <div class="panel panel--flush" id="batch-list" style="padding:8px 12px"></div>
+    `;
+
+    const listEl = root.querySelector('#batch-list');
+
+    function paint() {
+      if (!batches.length) {
+        listEl.innerHTML = `<div class="empty-note">No batches yet. Create one to assign experiments to your students.</div>`;
+        return;
+      }
+      listEl.innerHTML = batches.map(b => {
+        const studentCount = (b.studentIds || []).length;
+        const assignCount = (b.assignments || []).length;
+        return `
+          <div class="exp-row" style="cursor:pointer" data-bid="${b.id}">
+            <div style="min-width:0">
+              <div class="exp-row__title">${escapeHtml(b.name)}</div>
+              <div class="exp-row__meta">
+                ${studentCount} student${studentCount === 1 ? '' : 's'}
+                <span class="dot">·</span>${assignCount} assignment${assignCount === 1 ? '' : 's'}
+              </div>
+            </div>
+            <div class="exp-row__right">
+              <button class="icon-btn" type="button" data-edit="${b.id}" aria-label="Edit">${icons.svg('edit', { size: 15 })}</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('[data-bid], [data-edit]').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const bid = el.dataset.bid || el.dataset.edit;
+          const batch = batches.find(x => x.id === bid);
+          if (batch) openBatchEditor(batch);
+        });
+      });
+    }
+
+    function openBatchEditor(existing) {
+      const editing = !!existing;
+      const draft = editing ? JSON.parse(JSON.stringify(existing)) : {
+        id: 'b_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+        name: '',
+        studentIds: [],
+        assignments: []
+      };
+
+      const body = document.createElement('div');
+      body.style.cssText = 'display:flex;flex-direction:column;gap:16px';
+
+      const allExps = allExperiments();
+
+      body.innerHTML = `
+        <div class="field">
+          <label class="field__label" for="b-name">Batch name</label>
+          <input class="input" id="b-name" type="text" placeholder="e.g. Class 11-A" value="${escapeHtml(draft.name || '')}">
+        </div>
+
+        <div class="field">
+          <label class="field__label">Students</label>
+          <div style="max-height: 200px; overflow-y: auto; display:flex; flex-direction:column; gap:8px; padding:4px; border: 1px solid var(--line); border-radius: 8px;">
+            ${allStudentsList.length ? allStudentsList.map(st => `
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:4px;">
+                <input type="checkbox" data-stid="${st.id}" ${draft.studentIds.includes(st.id) ? 'checked' : ''}>
+                <span>${escapeHtml(st.name)} (${escapeHtml(st.email)})</span>
+              </label>
+            `).join('') : '<div class="empty-note" style="padding:10px">No students have signed up yet.</div>'}
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label">Assign Experiments &amp; Deadlines</label>
+          <div style="max-height: 250px; overflow-y: auto; display:flex; flex-direction:column; gap:12px; padding:4px; border: 1px solid var(--line); border-radius: 8px;">
+            ${allExps.map(e => {
+              const assign = draft.assignments.find(a => a.experimentId === e.id);
+              const checked = !!assign;
+              const deadline = assign ? new Date(assign.deadline).toISOString().slice(0, 10) : '';
+              return `
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:4px;">
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;">
+                    <input type="checkbox" data-eid="${e.id}" ${checked ? 'checked' : ''}>
+                    <span style="font-size:14px">${escapeHtml(e.title)}</span>
+                  </label>
+                  <input type="date" data-did="${e.id}" value="${deadline}" ${checked ? '' : 'disabled'} style="width: 140px; padding: 4px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-1); color: var(--ink-1);">
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      body.querySelectorAll('[data-eid]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const dateInput = body.querySelector(`[data-did="${cb.dataset.eid}"]`);
+          if (dateInput) dateInput.disabled = !cb.checked;
+        });
+      });
+
+      const foot = document.createElement('div');
+      foot.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;width:100%';
+      foot.innerHTML = `
+        <button class="btn" type="button" data-close>Cancel</button>
+        <button class="btn btn--primary" type="button" id="save-batch">
+          ${icons.svg('check', { size: 16 })}<span>${editing ? 'Save' : 'Create batch'}</span>
+        </button>
+      `;
+
+      const { close } = openDrawer({
+        title: editing ? 'Edit batch' : 'New batch',
+        body, footer: foot
+      });
+
+      foot.querySelector('#save-batch').addEventListener('click', () => {
+        const name = body.querySelector('#b-name').value.trim();
+        if (!name) { toast.warn('Give the batch a name.'); return; }
+
+        const studentIds = Array.from(body.querySelectorAll('[data-stid]:checked')).map(cb => cb.dataset.stid);
+
+        const assignments = [];
+        allExps.forEach(e => {
+          const cb = body.querySelector(`[data-eid="${e.id}"]`);
+          if (cb && cb.checked) {
+            const dateStr = body.querySelector(`[data-did="${e.id}"]`).value;
+            if (dateStr) {
+              // End of chosen day, local time
+              const deadline = new Date(dateStr).getTime() + 86399999;
+              assignments.push({ experimentId: e.id, deadline });
+            }
+          }
+        });
+
+        const payload = { ...draft, name, studentIds, assignments };
+
+        store.update(s => {
+          s.batches = s.batches || [];
+          const idx = s.batches.findIndex(x => x.id === payload.id);
+          if (idx >= 0) s.batches[idx] = payload;
+          else s.batches.push(payload);
+        });
+
+        toast.success(editing ? 'Batch updated.' : 'Batch created.');
+        close();
+        paint();
+        app.rebuildPalette();
+      });
+    }
+
+    root.querySelector('#add-batch').addEventListener('click', () => openBatchEditor(null));
+    paint();
+    return root;
+  }
   /* ============================================================
      9.  Routes + boot
      ============================================================ */
-  function registerAdminRoutes() {
+    function registerAdminRoutes() {
     router
       .register('/admin',                 VL.guardAdmin(() => { app.renderShell(); app.setView(app.wrap(dashboardView())); }))
       .register('/admin/experiments',     VL.guardAdmin(() => { app.renderShell(); app.setView(app.wrap(experimentsAdminView())); }))
       .register('/admin/submissions',     VL.guardAdmin(() => { app.renderShell(); app.setView(app.wrap(submissionsView())); }))
       .register('/admin/submissions/:id', VL.guardAdmin(({ id }) => { app.renderShell(); app.setView(app.wrap(submissionReviewView(id))); }))
-      .register('/admin/students',        VL.guardAdmin(() => { app.renderShell(); app.setView(app.wrap(studentsView())); }));
+      .register('/admin/students',        VL.guardAdmin(() => { app.renderShell(); app.setView(app.wrap(studentsView())); }))
+      .register('/admin/batches',         VL.guardAdmin(() => { app.renderShell(); app.setView(app.wrap(batchesView())); }));
   }
 
   /* Extend the command palette with admin-only entries. */
@@ -1361,12 +1518,9 @@
 
     bus.on('data', () => { app.rebuildPalette(); });
     bus.on('auth', () => { buildPaletteExtras(); app.rebuildPalette(); });
-    // If the current view is an admin route, refresh it when data changes.
     bus.on('data', () => {
       const path = router.path();
       if (path.startsWith('/admin') && document.querySelector('#view')) {
-        // Silent refresh: don't blow away focus inside a form. Only repaint
-        // if the active element isn't inside a drawer or form.
         const ae = document.activeElement;
         const insideForm = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.closest('.drawer, .modal'));
         if (!insideForm) router.handle();
@@ -1375,9 +1529,9 @@
   });
 
   /* Public surface for anyone extending the app later. */
-  VL.admin = {
+     VL.admin = {
     dashboardView, experimentsAdminView, submissionsView,
-    submissionReviewView, studentsView, openDrawer,
+    submissionReviewView, studentsView, batchesView, openDrawer,
     allExperiments, allSubmissions, allStudents, lastActiveFor
   };
 })();

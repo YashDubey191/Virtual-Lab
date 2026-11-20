@@ -1,5 +1,6 @@
 /* ============================================================
-   core.js — patched to prevent random hashes from triggering 404
+   core.js — patched: theme (6 PM auto + no flash), 404 recursion,
+             router anchor direct-loads, demo-student migration.
    ============================================================ */
 
 window.VL = (function () {
@@ -57,45 +58,91 @@ window.VL = (function () {
 
   window.addEventListener('storage', (e) => { if (e.key === STORE_KEY) bus.emit('external-change'); });
 
+  // Legacy demo students removed from the seed, per Phase 2.
+  // Any existing store still containing them will be scrubbed by ensureSeed().
+  const LEGACY_DEMO_IDS = new Set(['u_1','u_2','u_3','u_4','u_5','u_6','u_7','u_8']);
+
   const SEED = {
     __version: 1,
     users: [
-      { id: 'u_admin', role: 'admin',   name: 'Dr. Meera Iyer',  email: 'meera@lab.edu',       avatar: 'MI' },
-      { id: 'u_1',     role: 'student', name: 'Aarav Sharma',    email: 'aarav@student.edu',   avatar: 'AS', roll: '22BSC1013' },
-      { id: 'u_2',     role: 'student', name: 'Diya Patel',      email: 'diya@student.edu',    avatar: 'DP', roll: '22BSC1014' },
-      { id: 'u_3',     role: 'student', name: 'Kabir Singh',     email: 'kabir@student.edu',   avatar: 'KS', roll: '22BSC1015' },
-      { id: 'u_4',     role: 'student', name: 'Ananya Reddy',    email: 'ananya@student.edu',  avatar: 'AR', roll: '22BSC1016' },
-      { id: 'u_5',     role: 'student', name: 'Rohan Mehta',     email: 'rohan@student.edu',   avatar: 'RM', roll: '22BSC1017' },
-      { id: 'u_6',     role: 'student', name: 'Ishita Bose',     email: 'ishita@student.edu',  avatar: 'IB', roll: '22BSC1018' },
-      { id: 'u_7',     role: 'student', name: 'Vikram Nair',     email: 'vikram@student.edu',  avatar: 'VN', roll: '22BSC1019' },
-      { id: 'u_8',     role: 'student', name: 'Priya Kulkarni',  email: 'priya@student.edu',   avatar: 'PK', roll: '22BSC1020' }
+      { id: 'u_admin', role: 'admin', name: 'Dr. Meera Iyer', email: 'meera@lab.edu', avatar: 'MI' }
     ],
     experiments: [
-      { id: 'e_pendulum', title: 'Simple Pendulum — length vs period', subject: 'Physics', difficulty: 'Easy', duration: 25, aim: 'Study how the period of a simple pendulum depends on its length and estimate g.', theory: 'For small angles the restoring force is proportional to displacement, so the motion is simple-harmonic. Theory predicts T = 2π√(L/g), independent of the mass of the bob.', apparatus: ['Retort stand', 'Cotton thread (~1.2 m)', 'Brass bob (20 g)', 'Metre scale', 'Stopwatch'], quiz: [ { q: 'If you double the length, the period…', options: ['doubles', 'grows by √2', 'halves', 'stays the same'], correct: 1 }, { q: 'The period depends on the mass of the bob.', options: ['True', 'False'], correct: 1 }, { q: 'A stopwatch reading of 20 oscillations is divided by 20 to reduce…', options: ['parallax', 'human reaction error', 'air drag', 'gravity'], correct: 1 } ], published: true, order: 0 },
-      { id: 'e_ohm', title: "Ohm's Law — voltage, current, resistance", subject: 'Physics', difficulty: 'Easy', duration: 20, aim: 'Verify that current through a conductor is proportional to the potential difference across it.', theory: 'For a metallic conductor at constant temperature, V = IR. A plot of V against I is a straight line through the origin; its slope gives R.', apparatus: ['Battery eliminator (0–12 V)', 'Rheostat', 'Ammeter (0–1 A)', 'Voltmeter (0–10 V)', 'Connecting wires', 'Unknown resistor'], quiz: [ { q: 'The V–I graph for a resistor at constant temperature is…', options: ['a curve', 'a straight line through the origin', 'a horizontal line', 'a parabola'], correct: 1 }, { q: 'Doubling V while keeping R fixed will…', options: ['halve I', 'keep I the same', 'double I', 'square I'], correct: 2 }, { q: 'The SI unit of resistance is…', options: ['ampere', 'volt', 'ohm', 'watt'], correct: 2 } ], published: true, order: 1 },
-      { id: 'e_titration', title: 'Acid–Base Titration — find the strength of HCl', subject: 'Chemistry', difficulty: 'Medium', duration: 30, aim: 'Determine the concentration of a given HCl solution using a standard NaOH solution.', theory: 'At the endpoint, moles of acid equal moles of base: M₁V₁ = M₂V₂. Phenolphthalein is colourless in acid and pink in base, so the first permanent pink marks the endpoint.', apparatus: ['Burette (50 mL)', 'Pipette (20 mL)', 'Conical flask', 'NaOH (0.1 M)', 'Unknown HCl', 'Phenolphthalein'], quiz: [ { q: 'Phenolphthalein is colourless in…', options: ['base', 'acid', 'both', 'neither'], correct: 1 }, { q: 'At the endpoint, moles of HCl equal…', options: ['moles of NaOH', 'twice the moles of NaOH', 'half the moles of NaOH', 'zero'], correct: 0 }, { q: 'A student overshoots the endpoint. The calculated HCl molarity will be…', options: ['too low', 'unaffected', 'too high', 'zero'], correct: 2 } ], published: true, order: 2 },
-      { id: 'e_projectile', title: 'Projectile Motion — range and angle', subject: 'Physics', difficulty: 'Medium', duration: 35, aim: 'Measure how the horizontal range of a projectile varies with its launch angle.', theory: 'Ignoring air resistance, R = u²sin(2θ)/g. Range is maximum at 45° and equal for complementary angles.', apparatus: ['Projectile launcher', 'Graph paper', 'Protractor', 'Metre tape'], quiz: [ { q: 'The range is maximum at…', options: ['30°', '45°', '60°', '90°'], correct: 1 }, { q: 'Complementary angles give…', options: ['different ranges', 'the same range', 'zero range', 'maximum range'], correct: 1 } ], published: true, order: 3 },
-      { id: 'e_magnetic', title: 'Magnetic Field Around a Straight Wire', subject: 'Physics', difficulty: 'Hard', duration: 40, aim: 'Map the field lines around a straight current-carrying conductor.', theory: "Ampère's law: ∮B·dl = μ₀I. The field is concentric and falls off as 1/r.", apparatus: ['Long straight wire', 'Compass needle', 'Iron filings', 'DC supply'], quiz: [ { q: 'The field lines around a long straight wire are…', options: ['parallel', 'radial', 'concentric circles', 'helical'], correct: 2 } ], published: true, order: 4 }
+      { id: 'e_lens', title: 'Convex Lens — image distance and magnification', subject: 'Physics', difficulty: 'Medium', duration: 25, aim: 'Study how the position and size of the image formed by a convex lens change with the object distance.', theory: 'For a thin convex lens the lens equation is 1/f = 1/v + 1/u. When the object lies beyond 2f the image is real, inverted and diminished; between f and 2f it is real, inverted and magnified. The magnification is m = v/u.', apparatus: ['Convex lens (f = 15 cm)', 'Optical bench', 'Candle / object pin', 'Screen', 'Metre scale'], quiz: [ { q: 'When u = 2f, the image is…', options: ['same size, real, inverted', 'magnified, real, inverted', 'diminished, virtual, upright', 'at infinity'], correct: 0 }, { q: 'The lens formula is…', options: ['1/f = 1/v + 1/u', '1/f = 1/v − 1/u', 'f = u + v', 'f = uv'], correct: 0 } ], published: true, order: 5 },
+
+      { id: 'e_ph', title: 'pH Testing — measuring acidity with universal indicator', subject: 'Chemistry', difficulty: 'Easy', duration: 20, aim: 'Determine the pH of common solutions using universal indicator and place them on the pH scale.', theory: 'pH measures the hydrogen-ion concentration on a logarithmic scale: pH = −log₁₀[H⁺]. Universal indicator changes colour from red (strongly acidic, pH ≈ 1) through green (neutral, pH 7) to purple (strongly basic, pH ≈ 13).', apparatus: ['Test tubes', 'Universal indicator solution', 'Droppers', 'Household solutions', 'pH colour chart'], quiz: [ { q: 'Pure water has a pH of…', options: ['1', '5', '7', '14'], correct: 2 }, { q: 'Universal indicator is green in…', options: ['acid', 'neutral solution', 'strong base', 'always red'], correct: 1 }, { q: 'A solution of pH 3 is…', options: ['strongly basic', 'acidic', 'neutral', 'alkaline'], correct: 1 } ], published: true, order: 6 },
+            { id: 'e_refraction', title: "Refraction — Snell's Law", subject: 'Physics', difficulty: 'Medium', duration: 25, aim: 'Verify Snell\u2019s law n\u2081 sin i = n\u2082 sin r for light passing from air into glass.', theory: 'When light crosses a boundary between two transparent media, its direction changes. Snell\u2019s law relates the angle of incidence (i) and the angle of refraction (r): n\u2081 sin i = n\u2082 sin r, where n is the refractive index. For air (n\u2081 = 1.00) into glass (n\u2082 = 1.50), the ray bends toward the normal. A plot of sin i against sin r is a straight line through the origin with slope n\u2082/n\u2081.', apparatus: ['Glass slab', 'Laser pointer', 'Protractor', 'White paper', 'Pencil'], quiz: [ { q: 'When light goes from air into glass, it bends…', options: ['away from the normal', 'toward the normal', 'straight through', 'backwards'], correct: 1 }, { q: 'The refractive index of glass is roughly…', options: ['1.00', '1.33', '1.50', '2.00'], correct: 2 }, { q: 'A plot of sin i vs sin r for air → glass is…', options: ['a curve', 'a straight line through the origin', 'horizontal', 'vertical'], correct: 1 } ], published: true, order: 7 },
+
+      { id: 'e_flame', title: 'Flame Test — identifying metal ions by colour', subject: 'Chemistry', difficulty: 'Easy', duration: 20, aim: 'Identify common metal ions by the characteristic colour they produce in a flame.', theory: 'When a metal salt is heated in a flame, electrons are excited to higher energy levels. As they fall back, they emit light of characteristic wavelengths given by E = hc/\u03bb. Each metal has a unique fingerprint \u2014 sodium yellow (589 nm), lithium crimson (670 nm), potassium lilac (766 nm), copper blue-green (510 nm).', apparatus: ['Nichrome wire loop', 'Bunsen burner', 'Concentrated HCl (to clean the loop)', 'Metal salt samples', 'Safety goggles'], quiz: [ { q: 'Sodium gives a \u2026 flame.', options: ['crimson red', 'golden yellow', 'lilac', 'blue-green'], correct: 1 }, { q: 'The colour of a flame test comes from\u2026', options: ['the wire loop', 'electron transitions in the metal', 'the salt melting', 'the flame temperature'], correct: 1 }, { q: 'The formula relating photon energy to wavelength is\u2026', options: ['E = mc\u00b2', 'E = hc/\u03bb', 'E = \u00bdmv\u00b2', 'E = hf\u00b2'], correct: 1 } ], published: true, order: 8 }
     ],
-    submissions: [], activity: [], __seeded: false
+    submissions: [],
+    activity: [],
+    __seeded: false
   };
 
+  function buildSeedActivity() {
+    const days = []; const today = new Date(); const pattern = [4, 6, 3, 8, 5, 7, 4];
+    for (let i = 6; i >= 0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); days.push({ date: d.toISOString().slice(0, 10), count: pattern[6 - i] }); }
+    return days;
+  }
   function seedFromScratch() {
     const fresh = cloneDeep(SEED);
     fresh.__seeded = true;
     fresh.activity = buildSeedActivity();
     return fresh;
   }
-  function buildSeedActivity() {
-    const days = []; const today = new Date(); const pattern = [4, 6, 3, 8, 5, 7, 4];
-    for (let i = 6; i >= 0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); days.push({ date: d.toISOString().slice(0, 10), count: pattern[6 - i] }); }
-    return days;
-  }
+
+  /**
+   * Seed on first run; on subsequent runs, migrate the store idempotently:
+   *   • drop legacy demo students (Phase 2) from users / submissions / studentDays
+   *   • merge in any SEED.experiments not already present (by id)
+   * Never touches user-created students, experiments or submissions.
+   */
   function ensureSeed() {
     const s = store.read();
-    if (!s.__seeded) { store.write(seedFromScratch()); bus.emit('seed'); return true; }
+
+    if (!s.__seeded) {
+      store.write(seedFromScratch());
+      bus.emit('seed');
+      return true;
+    }
+
+    let changed = false;
+
+    if (Array.isArray(s.users)) {
+      const before = s.users.length;
+      s.users = s.users.filter(u => !(u && LEGACY_DEMO_IDS.has(u.id)));
+      if (s.users.length !== before) changed = true;
+    }
+
+    if (Array.isArray(s.submissions)) {
+      const before = s.submissions.length;
+      s.submissions = s.submissions.filter(sub => !(sub && LEGACY_DEMO_IDS.has(sub.studentId)));
+      if (s.submissions.length !== before) changed = true;
+    }
+
+    if (s.studentDays && typeof s.studentDays === 'object') {
+      for (const id of Object.keys(s.studentDays)) {
+        if (LEGACY_DEMO_IDS.has(id)) { delete s.studentDays[id]; changed = true; }
+      }
+    }
+
+    if (!Array.isArray(s.experiments)) s.experiments = [];
+    const haveIds = new Set(s.experiments.map(e => e && e.id).filter(Boolean));
+    for (const exp of SEED.experiments) {
+      if (!haveIds.has(exp.id)) {
+        s.experiments.push(cloneDeep(exp));
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      store.write(s);
+      bus.emit('seed');
+    }
     return false;
   }
+
   function resetDemo() { store.write(seedFromScratch()); bus.emit('reset'); }
 
   const ICON_PATHS = {
@@ -191,31 +238,110 @@ window.VL = (function () {
     info(m, o) { return this.show(m, { ...o, tone: 'info' }); }
   };
 
+  // ─── Theme ─────────────────────────────────────────────────────────
+  // Priority: manual light/dark always wins.  Auto = light 06:00–17:59,
+  // dark 18:00–05:59 local.  Boundary transitions are scheduled; also
+  // re-checked on visibilitychange and focus so a tab left open across
+  // 18:00 flips correctly the moment the user comes back to it.
   const theme = {
     modes: ['auto', 'light', 'dark'],
+    _timer: null,
+    _initialized: false,
+
     get mode() { return store.get('theme', 'auto') || 'auto'; },
-    resolved() { const m = this.mode; return m === 'auto' ? (prefersDark() ? 'dark' : 'light') : m; },
-    init() {
-      this._apply(this.resolved());
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      mq.addEventListener?.('change', () => { if (this.mode === 'auto') this._apply(this.resolved()); });
+
+    _isNightHour(h) { return h >= 18 || h < 6; },
+
+    resolved() {
+      const m = this.mode;
+      if (m === 'auto') return this._isNightHour(new Date().getHours()) ? 'dark' : 'light';
+      return m;
     },
-    set(mode, evt) { if (!this.modes.includes(mode)) return; store.set('theme', mode); this.apply(mode, evt); bus.emit('theme', { mode }); },
-    cycle(evt) { const i = this.modes.indexOf(this.mode); const next = this.modes[(i + 1) % this.modes.length]; this.set(next, evt); return next; },
-    _apply(resolved) { document.documentElement.setAttribute('data-theme', resolved); },
+
+    init() {
+      if (this._initialized) return;
+      this._initialized = true;
+      this._apply(this.resolved());
+      this._scheduleNext();
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.mode === 'auto') {
+          this._apply(this.resolved());
+          this._scheduleNext();
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (this.mode === 'auto') this._apply(this.resolved());
+      });
+      // If the user never set a mode, follow the OS on first launch only.
+      if (!store.read().theme) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
+          if (this.mode === 'auto') this._apply(this.resolved());
+        });
+      }
+    },
+
+    _scheduleNext() {
+      if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+      if (this.mode !== 'auto') return;
+      const now = new Date();
+      const next = new Date(now);
+      const h = now.getHours();
+      if (h < 6)       next.setHours(6, 0, 0, 0);                                   // night → day
+      else if (h < 18) next.setHours(18, 0, 0, 0);                                  // day → night
+      else { next.setDate(next.getDate() + 1); next.setHours(6, 0, 0, 0); }         // night → next day
+      const ms = Math.max(1000, next.getTime() - now.getTime() + 500);
+      this._timer = setTimeout(() => {
+        this._apply(this.resolved());
+        this._scheduleNext();
+      }, ms);
+    },
+
+    set(mode, evt) {
+      if (!this.modes.includes(mode)) return;
+      store.set('theme', mode);
+      this.apply(mode, evt);
+      this._scheduleNext();
+      bus.emit('theme', { mode });
+    },
+
+    cycle(evt) {
+      const i = this.modes.indexOf(this.mode);
+      const next = this.modes[(i + 1) % this.modes.length];
+      this.set(next, evt);
+      return next;
+    },
+
+    _apply(resolved) {
+      document.documentElement.setAttribute('data-theme', resolved);
+      const meta = document.querySelector('meta[name="theme-color"]:not([media])');
+      if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0B0D14' : '#F2F4F9');
+    },
+
     apply(mode, evt) {
-      const resolved = mode === 'auto' ? (prefersDark() ? 'dark' : 'light') : mode;
-      if (!document.startViewTransition || prefersReducedMotion()) { this._apply(resolved); return; }
-      const x = evt?.clientX ?? (window.innerWidth - 40); const y = evt?.clientY ?? 40;
+      const resolved = mode === 'auto'
+        ? (this._isNightHour(new Date().getHours()) ? 'dark' : 'light')
+        : mode;
+
+      if (!document.startViewTransition || prefersReducedMotion()) {
+        this._apply(resolved);
+        return;
+      }
+
+      const x = evt?.clientX ?? (window.innerWidth - 40);
+      const y = evt?.clientY ?? 40;
       const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
       const root = document.documentElement;
-      root.style.setProperty('--reveal-x', x + 'px'); root.style.setProperty('--reveal-y', y + 'px'); root.style.setProperty('--reveal-r', r + 'px');
+      root.style.setProperty('--reveal-x', x + 'px');
+      root.style.setProperty('--reveal-y', y + 'px');
+      root.style.setProperty('--reveal-r', r + 'px');
       root.classList.add('theme-reveal');
       const t = document.startViewTransition(() => this._apply(resolved));
       t.finished.finally(() => root.classList.remove('theme-reveal'));
     }
   };
 
+  // ─── Router ────────────────────────────────────────────────────────
   const router = {
     routes: [], current: null,
     register(pattern, handler) {
@@ -231,23 +357,34 @@ window.VL = (function () {
     },
     replace(path) { this.go(path, { replace: true }); },
     path() { return location.hash.replace(/^#/, '') || '/home'; },
-    handle() {
-      const path = this.path();
-      
-      // FIX: If the path is just an anchor (e.g., from clicking #sec-aim), don't render 404
-      if (!path.startsWith('/') && !path.startsWith('admin') && !path.startsWith('experiments') && !path.startsWith('home') && !path.startsWith('progress') && !path.startsWith('signin')) {
-        return;
-      }
 
+    handle() {
+      const raw  = location.hash.replace(/^#/, '');
+      const path = raw.startsWith('/') ? raw : '/' + raw;
+
+      // Try registered routes first — this covers #/home, #home, #admin, #/admin.
       for (const r of this.routes) {
         const m = path.match(r.re);
         if (!m) continue;
         const params = {};
         r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
-        this._run(r, params, path); return;
+        this._run(r, params, path);
+        return;
       }
+
+      // No match. If the hash has no leading slash and no inner slash,
+      // it's an anchor like #sec-aim — ignore it (browser scrolls), but
+      // if nothing has rendered yet (direct load/refresh), boot /home so
+      // the app isn't blank.
+      if (raw.length && !raw.startsWith('/') && !raw.includes('/')) {
+        if (!this.current) this.go('/home', { replace: true });
+        return;
+      }
+
+      // Otherwise it's a real 404.
       this._run({ handler: notFound, pattern: '*' }, {}, path);
     },
+
     _run(route, params, path) {
       const prev = this.current;
       this.current = { path, params, pattern: route.pattern };
@@ -255,12 +392,20 @@ window.VL = (function () {
       if (document.startViewTransition && !prefersReducedMotion()) { document.startViewTransition(run); } else { run(); }
       bus.emit('route', { path, params });
     },
+
     start() { window.addEventListener('hashchange', () => this.handle()); this.handle(); }
   };
 
   function notFound() {
-    if (VL.notFound) { VL.notFound(); return; }
-    const app = document.getElementById('view') || document.body;
+    // If student.js replaced VL.notFound with a custom handler, use it —
+    // but never recurse into ourselves (that was the old bug).
+    const override = VL && VL.notFound;
+    if (override && override !== notFound) {
+      try { override(); return; } catch (err) { console.error('[VL 404 override]', err); }
+    }
+    const app = document.getElementById('view')
+             || document.getElementById('app')
+             || document.body;
     app.innerHTML = '<div class="panel glass" style="max-width:520px;margin:64px auto;padding:32px;text-align:center"><h1 style="font-size:28px;margin-bottom:8px">Page not found</h1><p style="color:var(--ink-3)">That link doesn\'t lead anywhere. Try the home tab.</p><p style="margin-top:16px"><a class="btn btn--primary" href="#/home">Go home</a></p></div>';
   }
 
@@ -386,12 +531,113 @@ window.VL = (function () {
     document.body.appendChild(wrap);
   }
 
-  function mountBackground() {
+    function mountBackground() {
     if (document.querySelector('.bg-blobs')) return;
-    const blobs = document.createElement('div'); blobs.className = 'bg-blobs'; blobs.setAttribute('aria-hidden', 'true');
+
+    const blobs = document.createElement('div');
+    blobs.className = 'bg-blobs';
+    blobs.setAttribute('aria-hidden', 'true');
     blobs.innerHTML = '<span class="blob blob-1"></span><span class="blob blob-2"></span><span class="blob blob-3"></span><span class="blob blob-4"></span>';
-    const noise = document.createElement('div'); noise.className = 'bg-noise'; noise.setAttribute('aria-hidden', 'true');
-    document.body.prepend(noise); document.body.prepend(blobs);
+
+    const noise = document.createElement('div');
+    noise.className = 'bg-noise';
+    noise.setAttribute('aria-hidden', 'true');
+
+    const science = document.createElement('div');
+    science.className = 'bg-science';
+    science.setAttribute('aria-hidden', 'true');
+    science.innerHTML = buildScienceLayer();
+
+    document.body.prepend(noise);
+    document.body.prepend(blobs);
+    document.body.prepend(science);
+  }
+
+  /**
+   * Returns the inner HTML for the .bg-science layer.
+   * Each `.sci` is positioned with % so it scales with viewport.
+   * `--dx*`/`--dy*` control drift amplitude per element so no two
+   * move exactly alike. `--delay` is negative so animations start
+   * mid-cycle and the whole layer never breathes in unison.
+   */
+  function buildScienceLayer() {
+        const SVGS = {
+      atom:
+        '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="4" fill="currentColor" stroke="none"/>' +
+        '<ellipse cx="50" cy="50" rx="42" ry="14" transform="rotate(30 50 50)"/>' +
+        '<ellipse cx="50" cy="50" rx="42" ry="14" transform="rotate(90 50 50)"/>' +
+        '<ellipse cx="50" cy="50" rx="42" ry="14" transform="rotate(150 50 50)"/></svg>',
+      benzene:
+        '<svg viewBox="0 0 100 100"><path d="M50 10 L87 30 L87 70 L50 90 L13 70 L13 30 Z"/>' +
+        '<circle cx="50" cy="50" r="22" stroke-dasharray="4 4"/></svg>',
+      water:
+        '<svg viewBox="0 0 120 100"><circle cx="30" cy="50" r="14"/><circle cx="90" cy="50" r="14"/>' +
+        '<circle cx="60" cy="80" r="18"/><line x1="42" y1="52" x2="50" y2="72"/>' +
+        '<line x1="78" y1="52" x2="70" y2="72"/></svg>',
+      circuit:
+        '<svg viewBox="0 0 140 100"><path d="M10 20 L130 20 L130 80 L10 80 Z"/>' +
+        '<rect x="55" y="12" width="30" height="16" rx="2"/><circle cx="20" cy="50" r="10"/>' +
+        '<path d="M100 20 L100 30 L110 30 L110 40 L120 40"/></svg>',
+      flask:
+        '<svg viewBox="0 0 100 100"><path d="M40 15 L60 15"/>' +
+        '<path d="M45 15 L45 45 L20 85 Q18 95 30 95 L70 95 Q82 95 80 85 L55 45 L55 15"/>' +
+        '<line x1="30" y1="75" x2="70" y2="75"/></svg>',
+      magnetic:
+        '<svg viewBox="0 0 100 100"><path d="M30 80 V40 A20 20 0 0 1 70 40 V80 H55 V40 A5 5 0 0 0 45 40 V80 Z" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="30" y1="80" x2="45" y2="80" stroke="currentColor" stroke-width="4"/><line x1="55" y1="80" x2="70" y2="80" stroke="currentColor" stroke-width="4"/></svg>',
+      dna:
+        '<svg viewBox="0 0 60 120"><path d="M15 10 Q45 30 15 50 Q-15 70 15 90 Q45 110 15 120"/>' +
+        '<path d="M45 10 Q15 30 45 50 Q75 70 45 90 Q15 110 45 120"/></svg>',
+      testtube:
+        '<svg viewBox="0 0 100 100"><path d="M35 20 V75 A15 15 0 0 0 65 75 V20 Z"/><line x1="30" y1="20" x2="70" y2="20"/><line x1="35" y1="55" x2="65" y2="55"/><circle cx="50" cy="80" r="3" fill="currentColor"/></svg>',
+      gear:
+        '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="24"/><path d="M50 10 v15 M50 75 v15 M10 50 h15 M75 50 h15 M22 22 l11 11 M67 67 l11 11 M22 78 l11-11 M67 33 l11-11"/></svg>'
+    };
+
+    const items = [
+      { x: 3,  y: 8,  w: 140, type: 'text', text: 'E = mc²',      dur: 18, delay: 0,   dx: 14, dy: -22 },
+      { x: 76, y: 6,  w: 130, type: 'text', text: 'F = ma',       dur: 22, delay: -6,  dx: -12, dy: -18 },
+      { x: 4,  y: 58, w: 120, type: 'text', text: 'V = IR',       dur: 16, delay: -12, dx: 18, dy: -14 },
+      { x: 72, y: 78, w: 140, type: 'text', text: 'PV = nRT',     dur: 24, delay: -4,  dx: -10, dy: -20 },
+      { x: 40, y: 3,  w: 150, type: 'text', text: '∮ B·dl = μ₀I', dur: 20, delay: -18, dx: 12, dy: -16 },
+      { x: 20, y: 34, w: 120, type: 'svg',  svg:  'atom',         dur: 28, delay: -8,  dx: 10, dy: -18, spin: 80 },
+      { x: 56, y: 44, w: 130, type: 'svg',  svg:  'benzene',      dur: 26, delay: -16, dx: -12, dy: -22, spin: 100 },
+      { x: 80, y: 40, w: 90,  type: 'svg',  svg:  'water',        dur: 24, delay: -10, dx: 8, dy: -20 },
+      { x: 38, y: 82, w: 130, type: 'svg',  svg:  'circuit',      dur: 30, delay: -20, dx: -14, dy: -18 },
+      { x: 10, y: 78, w: 80,  type: 'svg',  svg:  'flask',        dur: 22, delay: -14, dx: 10, dy: -16 },
+      { x: 66, y: 20, w: 100, type: 'svg',  svg:  'magnetic',     dur: 27, delay: -6,  dx: -8, dy: -22 },
+      { x: 90, y: 62, w: 50,  type: 'svg',  svg:  'dna',          dur: 29, delay: -22, dx: 6, dy: -20, spin: 120 },
+      { x: 84, y: 12, w: 70,  type: 'svg',  svg:  'gear',         dur: 25, delay: -5,  dx: -12, dy: -15, spin: 60 },
+      { x: 15, y: 15, w: 60,  type: 'svg',  svg:  'testtube',     dur: 21, delay: -11, dx: 8, dy: -16 },
+      { x: 46, y: 88, w: 60,  type: 'text', text: 'Σ',            dur: 26, delay: -10, dx: -8, dy: -14 },
+      { x: 88, y: 88, w: 60,  type: 'text', text: '√',            dur: 22, delay: -8,  dx: -10, dy: -16 }
+    ];
+
+    return items.map(it => {
+      const dx = it.dx || 10;
+      const dy = it.dy || -15;
+      const vars = [
+        `--dur:${it.dur}s`,
+        `--delay:${it.delay || 0}s`,
+        `--dx1:${dx}px`,
+        `--dx2:${(dx * -0.8).toFixed(1)}px`,
+        `--dx3:${(dx * -1.1).toFixed(1)}px`,
+        `--dy1:${dy}px`,
+        `--dy2:${(dy * 1.6).toFixed(1)}px`,
+        `--dy3:${(dy * 0.6).toFixed(1)}px`
+      ].join(';');
+
+      const baseStyle = `left:${it.x}%;top:${it.y}%;width:${it.w}px;${vars}`;
+
+      if (it.type === 'text') {
+        const fs = Math.round(it.w * 0.20);
+        return `<div class="sci sci--text" style="${baseStyle};font-size:${fs}px;">${it.text}</div>`;
+      }
+
+      const spinClass = it.spin ? ' sci--spin' : '';
+      const spinStyle = it.spin ? `--spin-dur:${it.spin}s;` : '';
+      const svg = SVGS[it.svg] || '';
+      return `<div class="sci" style="${baseStyle};"><div class="sci__inner${spinClass}" style="${spinStyle}">${svg}</div></div>`;
+    }).join('');
   }
 
   function ready(fn) {
@@ -401,12 +647,16 @@ window.VL = (function () {
 
   const api = {
     $, $$, h, clamp, fmt, uid, wait, debounce, escapeHtml, prefersReducedMotion, prefersDark,
-    store, bus, SEED: cloneDeep(SEED), ensureSeed, resetDemo,
+    store, bus, SEED: cloneDeep(SEED), ensureSeed, resetDemo, LEGACY_DEMO_IDS,
     router, theme, toast, palette, icons,
     attachSpecular, attachTilt, observeReveals, countUp,
     mountBackground, injectRefractFilter, ready,
     notFound
   };
+
+  // Auto-init theme. Deferred scripts run after DOMContentLoaded, so <html>
+  // exists here. Idempotent — student.js may call theme.init() safely too.
+  try { theme.init(); } catch (err) { console.error('[VL theme init]', err); }
 
   return api;
 })();

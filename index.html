@@ -4,27 +4,45 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#F2F4F9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0B0D14" media="(prefers-color-scheme: dark)">
   <title>Virtual Lab</title>
   <meta name="description" content="Run college lab experiments in the browser — simulate, record, plot, submit.">
 
-  <!-- Inter is the only external request. It only kicks in when the OS
-       doesn't have SF Pro / system-ui. -->
+  <!-- Resolved-theme colour for browser chrome. Updated by core.js after boot. -->
+  <meta name="theme-color" content="#F2F4F9">
+
+  <!-- First-paint theme: runs before any stylesheet paints, prevents light→dark flash. -->
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem('vl.v1');
+        var s = raw ? JSON.parse(raw) : {};
+        var mode = s.theme || 'auto';
+        var h = new Date().getHours();
+        var resolved = mode === 'auto'
+          ? ((h >= 18 || h < 6) ? 'dark' : 'light')
+          : mode;
+        document.documentElement.setAttribute('data-theme', resolved);
+        var meta = document.querySelector('meta[name="theme-color"]:not([media])');
+        if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0B0D14' : '#F2F4F9');
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/bg-science.css">
   <link rel="stylesheet" href="css/motion.css">
   <link rel="stylesheet" href="css/screens.css">
-</head>
+    <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/exp-cards.css">
 <body>
-  <!-- All app UI is rendered into #app by the scripts below. -->
   <div id="app"></div>
-
-  <!-- Toast region lives outside #app so it survives view swaps. -->
   <div class="toast-region" role="status" aria-live="polite"></div>
 
   <script defer src="js/core.js"></script>
