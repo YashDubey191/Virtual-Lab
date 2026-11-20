@@ -1432,7 +1432,7 @@
   function playSuccess() {
     if (VL.prefersReducedMotion()) return;
     const overlay = document.createElement('div'); overlay.className = 'done-overlay';
-    overlay.innerHTML = `<div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path class="check-draw" style="--len:40" d="m4.5 12.5 5 5 10-11"/></svg></div>`;
+        overlay.innerHTML = `<div class="badge" style="background: var(--green) !important; color: #fff !important; box-shadow: 0 24px 60px rgba(52, 199, 89, .40), inset 0 1px 0 rgba(255, 255, 255, .35) !important;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path class="check-draw" style="--len:40" d="m4.5 12.5 5 5 10-11"/></svg></div>`;
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.classList.add('on'));
     const cv = document.createElement('canvas'); cv.id = 'confetti';
