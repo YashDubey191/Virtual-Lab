@@ -96,6 +96,49 @@
       s.studentDays[userId][today] = true;
     });
   }
+    // Create ONE global audio context to prevent browser blocking
+  let globalAudioCtx = null;
+
+  function playSound(type) {
+    try {
+      if (!globalAudioCtx) {
+        globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      // Resume context if it was suspended by the browser
+      if (globalAudioCtx.state === 'suspended') {
+        globalAudioCtx.resume();
+      }
+
+      const osc = globalAudioCtx.createOscillator();
+      const gain = globalAudioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(globalAudioCtx.destination);
+
+      const now = globalAudioCtx.currentTime;
+
+      if (type === 'correct') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+        osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now); 
+        osc.stop(now + 0.5);
+      } else if (type === 'wrong') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now); // A3
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.2); // A2
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); 
+        osc.stop(now + 0.3);
+      }
+    } catch (e) { 
+      console.warn("Audio not supported", e); 
+    }
+  }
   function seedStudentExtras() { /* no-op; demo data is scrubbed by core.js */ }
 
   /* ============================================================
@@ -161,9 +204,10 @@
   /* ============================================================
      Nav + shell
      ============================================================ */
-  const NAV_STUDENT = [
+   const NAV_STUDENT = [
     { href: '#/home',        label: 'Home',        icon: 'home' },
     { href: '#/experiments', label: 'Experiments', icon: 'flask' },
+    { href: '#/quizzes',     label: 'Quizzes',     icon: 'clipboard' }, // <--- NEW
     { href: '#/progress',    label: 'Progress',    icon: 'chart' }
   ];
     const NAV_ADMIN = [
@@ -186,7 +230,7 @@
     const here = '#' + (location.hash.replace(/^#/, '') || '/home');
     const isAdmin = s.role === 'admin';
         const titleMap = {
-      '#/home': 'Virtual Lab', '#/experiments': 'Experiments', '#/progress': 'Progress',
+      '#/home': 'Virtual Lab', '#/experiments': 'Experiments','#/quizzes': 'Quizzes', '#/progress': 'Progress',
       '#/admin': 'Admin', '#/admin/experiments': 'Experiments',
       '#/admin/submissions': 'Submissions', '#/admin/students': 'Students',
       '#/admin/batches': 'Batches'
@@ -918,7 +962,7 @@
   const STEPS = [
     { id: 'aim', label: 'Aim' }, { id: 'theory', label: 'Theory' },
     { id: 'sim', label: 'Simulate' }, { id: 'obs', label: 'Observe' },
-    { id: 'graph', label: 'Graph' }, { id: 'quiz', label: 'Quiz' },
+    { id: 'graph', label: 'Graph' },
     { id: 'conclusion', label: 'Conclusion' }
   ];
 
@@ -1029,7 +1073,73 @@
   function clearDraft(userId, expId) {
     store.update(s => { if (s.drafts) delete s.drafts[draftKey(userId, expId)]; });
   }
+    function quizzesView() {
+    const s = session();
+    const mySubs = mySubmissions(s.id);
+    
+    // Get all experiments that actually have quiz questions
+    const allQuizzes = experiments().filter(e => e.quiz && e.quiz.length > 0);
 
+    const root = document.createElement('div');
+    
+    root.innerHTML = `
+      <div class="section-head">
+        <h2>Quizzes</h2>
+        <span style="color:var(--ink-3);font-size:14px">${allQuizzes.length} available</span>
+      </div>
+      <p style="color:var(--ink-3);font-size:15px;margin-bottom:20px">
+        Test your knowledge. Quizzes are separate from experiment reports, so you can take them anytime.
+      </p>
+
+      <div class="exp-grid" data-stagger>
+        ${allQuizzes.map((e, i) => {
+          // Check if the student has submitted answers for this quiz
+          const sub = mySubs.find(x => x.experimentId === e.id && x.quizTotal > 0);
+          const isDone = !!sub && sub.quizScore != null;
+          const score = isDone ? `${sub.quizScore}/${sub.quizTotal}` : null;
+          
+          return `
+            <div class="panel fade-up" style="display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:20px;">
+              <div class="exp-card__head">
+                <div>
+                  <div class="chip" style="margin-bottom:8px">${escapeHtml(e.subject)}</div>
+                  <div class="exp-card__title">${escapeHtml(e.title)}</div>
+                </div>
+              </div>
+              
+              <div style="font-size:14px;color:var(--ink-3)">
+                ${e.quiz.length} question${e.quiz.length === 1 ? '' : 's'} · ${e.duration} min
+              </div>
+
+              <div style="margin-top:auto; padding-top:16px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--line);">
+                ${isDone 
+                  ? `<span class="chip chip--green">${icons.svg('check', { size: 12 })} Score: ${score}</span>`
+                  : `<span class="chip chip--orange">Not taken yet</span>`
+                }
+                
+                <!-- This links to the NEW standalone quiz page -->
+                <a href="#/quiz/${e.id}" class="btn btn--primary btn--sm">
+                  ${isDone ? 'Retake Quiz' : 'Start Quiz'} ${icons.svg('arrow-right', { size: 14 })}
+                </a>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    // If there are no quizzes, show a nice empty state
+    if (allQuizzes.length === 0) {
+      root.innerHTML = `
+        <div class="section-head"><h2>Quizzes</h2></div>
+        <div class="panel">
+          <div class="empty-note">No quizzes have been published yet. Check back later!</div>
+        </div>
+      `;
+    }
+
+    return root;
+  }
   function experimentPage(id) {
     const s = session();
     const exp = experimentById(id);
@@ -1108,9 +1218,15 @@
         <div id="fit-line" style="font-size:13px;color:var(--ink-3);margin-top:6px"></div>
       </section>
 
-      <section class="exp-section panel" id="sec-quiz">
-        <h2>Quick check</h2>
-        <div id="quiz-body"></div>
+            <!-- REPLACE THE OLD sec-quiz WITH THIS -->
+      <section class="exp-section panel" id="sec-quiz-cta">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 style="margin:0;font-size:18px">Quick Check</h2>
+            <p style="margin:4px 0 0;color:var(--ink-3);font-size:14px">Ready to test your knowledge on this experiment?</p>
+          </div>
+          <a href="#/quiz/${exp.id}" class="btn btn--primary">Take the Quiz ${icons.svg('arrow-right', { size: 16 })}</a>
+        </div>
       </section>
 
       <section class="exp-section panel" id="sec-conclusion">
@@ -1310,7 +1426,7 @@
       } else fitLineEl.textContent = 'Add one more reading to fit a line.';
     }
 
-    const quiz = Array.isArray(exp.quiz) ? exp.quiz : [];
+    
       function playSound(type) {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1337,65 +1453,36 @@
       }
     } catch (e) { /* Audio not supported */ }
   }
-    function paintQuiz() {
-      quizBody.innerHTML = '';
-      if (!quiz.length) { quizBody.innerHTML = '<div class="empty-note">No quiz questions.</div>'; updateSubmitState(); return; }
-      quiz.forEach((q, i) => {
-        const chosen = answers[i]; const locked = chosen != null;
-        const wrap = document.createElement('div'); wrap.className = 'quiz__q';
-        wrap.innerHTML = `<div class="quiz__prompt"><span class="qnum">${i + 1}</span><span>${escapeHtml(q.q)}</span></div><div class="quiz__opts">${q.options.map((opt, oi) => {
-          const isCorrect = oi === q.correct, isChosen = chosen === oi;
-          const cls = !locked ? '' : (isCorrect ? 'correct' : (isChosen ? 'wrong' : ''));
-          return `<button class="quiz__opt ${cls}" type="button" data-q="${i}" data-o="${oi}" ${locked ? 'disabled' : ''}><span class="mark">${icons.svg('check', { size: 12, sw: 3 })}</span><span>${escapeHtml(opt)}</span></button>`;
-        }).join('')}</div>`;
-        quizBody.appendChild(wrap);
-      });
-      quizBody.querySelectorAll('.quiz__opt:not([disabled])').forEach(b => {
-        b.addEventListener('click', () => {
-          const qi = Number(b.dataset.q), oi = Number(b.dataset.o);
-          if (answers[qi] != null) return;
-          answers[qi] = oi; saveDraft(s.id, id, { answers }); markSaved(); paintQuiz();
-         const right = oi === quiz[qi].correct;
-          if (right) {
-            playSound('correct');
-            toast.success('Correct.');
-          } else {
-            playSound('wrong');
-            toast.warn(`Not quite. The right answer is: ${quiz[qi].options[quiz[qi].correct]}`);
-          }
-        });
-      });
-      updateSubmitState();
-    }
+    
 
-    function quizScore() { let right = 0; quiz.forEach((q, i) => { if (answers[i] === q.correct) right++; }); return { right, total: quiz.length }; }
 
     conclEl.addEventListener('input', () => { conclusion = conclEl.value; autosave({ conclusion }); updateSubmitState(); });
     root.querySelector('#save-now').addEventListener('click', () => { saveDraft(s.id, id, { readings: readingRows, answers, conclusion }); markSaved(); toast.success('Draft saved.'); });
 
-    function updateSubmitState() {
+       function updateSubmitState() {
       const need = [];
       if (readingRows.length < 2) need.push('at least 2 readings');
       if (conclusion.trim().length < 20) need.push('a conclusion (20+ characters)');
-      if (quiz.length > 0) { const answered = quiz.every((_, i) => answers[i] != null); if (!answered) need.push('all quiz questions'); }
-      const btn = root.querySelector('#submit-report'); const can = need.length === 0;
-      btn.disabled = !can; btn.setAttribute('aria-disabled', String(!can));
+      const btn = root.querySelector('#submit-report');
+      const can = need.length === 0;
+      btn.disabled = !can;
+      btn.setAttribute('aria-disabled', String(!can));
       hint.textContent = can ? 'Ready to submit. Your teacher will see this report.' : `Still need: ${need.join(', ')}.`;
     }
 
-    root.querySelector('#submit-report').addEventListener('click', () => {
-      const { right, total } = quizScore();
+        root.querySelector('#submit-report').addEventListener('click', () => {
       const submission = {
         id: 'sub_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         studentId: s.id, studentName: s.name,
         experimentId: exp.id, experimentTitle: exp.title,
         submittedAt: Date.now(),
         readings: readingRows.slice(),
-        answers: Object.assign({}, answers),
-        quizScore: right, quizTotal: total,
+        answers: {}, // Empty, filled by separate quiz page
+        quizScore: 0, quizTotal: exp.quiz ? exp.quiz.length : 0,
         conclusion: conclusion.trim(),
         status: 'pending', score: null, feedback: ''
       };
+      // ... rest of the save logic stays the same
       const written = store.update(st => { st.submissions = st.submissions || []; st.submissions.unshift(submission); return true; });
       if (!written) { toast.error('Could not save your report. Check storage, then try again.'); return; }
       clearDraft(s.id, exp.id); markActiveToday(s.id);
@@ -1458,7 +1545,113 @@
     }
     requestAnimationFrame(frame);
   }
+    function quizView(id) {
+    const s = session();
+    const exp = experimentById(id);
+    if (!exp || !exp.quiz || !exp.quiz.length) { router.replace('/quizzes'); return null; }
 
+    const mySubs = mySubmissions(s.id).filter(x => x.experimentId === id);
+    const latestSub = mySubs[0];
+    const answers = latestSub && latestSub.answers ? Object.assign({}, latestSub.answers) : {};
+
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <div class="exp-hero glass" style="margin-bottom: 20px;">
+        <div class="exp-hero__left">
+          <a class="back" href="#/quizzes">${icons.svg('chevron-left', { size: 14 })}<span>All Quizzes</span></a>
+          <h1>Quiz: ${escapeHtml(exp.title)}</h1>
+          <div class="meta">
+            <span class="chip chip--blue">${exp.quiz.length} Questions</span>
+            ${latestSub && latestSub.quizScore != null ? `<span class="chip chip--green">Previous Score: ${latestSub.quizScore}/${latestSub.quizTotal}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="quiz-container"></div>
+      <div class="submit-bar" style="margin-top: 20px; justify-content: flex-end;">
+        <button class="btn btn--primary btn--lg" id="submit-quiz" disabled>Submit Quiz</button>
+      </div>
+    `;
+
+    const container = root.querySelector('#quiz-container');
+    const submitBtn = root.querySelector('#submit-quiz');
+
+    function paintQuiz() {
+      container.innerHTML = '';
+      exp.quiz.forEach((q, i) => {
+        const chosen = answers[i];
+        const locked = chosen != null;
+        const wrap = document.createElement('div');
+        wrap.className = 'quiz__q';
+        wrap.innerHTML = `
+          <div class="quiz__prompt"><span class="qnum">${i + 1}</span><span>${escapeHtml(q.q)}</span></div>
+          <div class="quiz__opts">
+            ${q.options.map((opt, oi) => {
+              const isCorrect = oi === q.correct;
+              const isChosen = chosen === oi;
+              const cls = !locked ? '' : (isCorrect ? 'correct' : (isChosen ? 'wrong' : ''));
+              return `<button class="quiz__opt ${cls}" type="button" data-q="${i}" data-o="${oi}" ${locked ? 'disabled' : ''}><span class="mark">${icons.svg('check', { size: 12, sw: 3 })}</span><span>${escapeHtml(opt)}</span></button>`;
+            }).join('')}
+          </div>`;
+        container.appendChild(wrap);
+      });
+
+      container.querySelectorAll('.quiz__opt:not([disabled])').forEach(b => {
+        b.addEventListener('click', () => {
+          const qi = Number(b.dataset.q); const oi = Number(b.dataset.o);
+          if (answers[qi] != null) return;
+          answers[qi] = oi;
+          paintQuiz();
+          const right = oi === exp.quiz[qi].correct;
+          if (right) playSound('correct');
+          else {
+            playSound('wrong');
+            toast.warn(`Not quite. The right answer is: ${exp.quiz[qi].options[exp.quiz[qi].correct]}`);
+          }
+          checkSubmitState();
+        });
+      });
+      checkSubmitState();
+    }
+
+    function checkSubmitState() {
+      const allAnswered = exp.quiz.every((_, i) => answers[i] != null);
+      submitBtn.disabled = !allAnswered;
+    }
+
+    submitBtn.addEventListener('click', () => {
+      let right = 0;
+      exp.quiz.forEach((q, i) => { if (answers[i] === q.correct) right++; });
+      
+      store.update(st => {
+        st.submissions = st.submissions || [];
+        let sub = st.submissions.find(x => x.studentId === s.id && x.experimentId === id);
+        
+        if (sub) {
+          sub.answers = Object.assign({}, answers);
+          sub.quizScore = right;
+          sub.quizTotal = exp.quiz.length;
+        } else {
+          // If they haven't done the experiment yet, create a pending submission just for the quiz
+          st.submissions.unshift({
+            id: 'sub_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            studentId: s.id, studentName: s.name,
+            experimentId: exp.id, experimentTitle: exp.title,
+            submittedAt: Date.now(),
+            readings: [], answers: Object.assign({}, answers),
+            quizScore: right, quizTotal: exp.quiz.length,
+            conclusion: '', status: 'pending', score: null, feedback: ''
+          });
+        }
+      });
+      
+      playSuccess();
+      toast.success(`Quiz submitted! You scored ${right}/${exp.quiz.length}.`);
+      setTimeout(() => router.go('/quizzes'), 1000);
+    });
+
+    paintQuiz();
+    return root;
+  }
   /* ============================================================
      Progress
      ============================================================ */
@@ -1595,6 +1788,8 @@
       .register('/', () => { const s = session(); router.replace(s ? (s.role === 'admin' ? '/admin' : '/home') : '/signin'); })
       .register('/signin', () => { const s = session(); if (s) { router.replace(s.role === 'admin' ? '/admin' : '/home'); return; } renderShell(); setView(onboardingView()); })
       .register('/home', VL.guardStudent(() => { renderShell(); setView(wrap(homeView())); }))
+      .register('/quizzes', VL.guardStudent(() => { renderShell(); setView(wrap(quizzesView())); }))
+      .register('/quiz/:id', VL.guardStudent(({ id }) => { renderShell(); const page = quizView(id); if (page) setView(wrap(page)); }))
       .register('/experiments', VL.guardStudent(() => { renderShell(); setView(wrap(experimentsView())); }))
       .register('/experiments/:id', VL.guardStudent(({ id }) => { renderShell(); const page = experimentPage(id); if (page) setView(wrap(page)); }))
       .register('/progress', VL.guardStudent(() => { renderShell(); setView(wrap(progressView())); }));
