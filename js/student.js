@@ -1140,6 +1140,53 @@
 
     return root;
   }
+    const APPARATUS_ICONS = {
+    stand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 22h16M6 22V4h12v18M12 4v8"/></svg>',
+    bob: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="16" r="6"/><path d="M12 2v8"/></svg>',
+    thread: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2s-4 4-4 10 4 10 4 10 4-4 4-10-4-10-4-10z"/></svg>',
+    scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="10" width="20" height="4" rx="1"/><path d="M6 10v-2M10 10v-3M14 10v-3M18 10v-2"/></svg>',
+    stopwatch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>',
+    battery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="16" height="10" rx="2"/><path d="M18 10h3v4h-3M6 10v4M10 10v4M14 10v4"/></svg>',
+    circuit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16v12H4z"/><circle cx="12" cy="12" r="2"/><path d="M12 6v4M12 14v4"/></svg>',
+    meter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 12l4-4"/></svg>',
+    wire: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12c4 0 4-6 8-6s4 12 8 12 4-6 4-6"/></svg>',
+    beaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3v18h12V3M6 12h12M4 3h16M4 21h16"/></svg>',
+    burette: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2h8v16H8zM10 18v2h4v-2M10 8h4"/></svg>',
+    flask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 2h6M10 2v6L4 20a2 2 0 002 2h12a2 2 0 002-2L14 8V2"/><path d="M7 15h10"/></svg>',
+    pipette: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M9 4h6v4H9zM10 18h4v4h-4z"/></svg>',
+    lens: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="12" rx="4" ry="10"/></svg>',
+    laser: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="9" width="12" height="6" rx="2"/><path d="M14 12h8M18 9l4 3-4 3"/></svg>',
+    burner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="20" width="8" height="4" rx="1"/><path d="M10 20V10h4v10M12 10V4M9 4h6"/><path d="M8 4c-2-2-4 0-4 2s2 4 4 2M16 4c2-2 4 0 4 2s-2 4-4 2"/></svg>',
+    goggles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10a4 4 0 014-4h12a4 4 0 014 4v4a4 4 0 01-4 4H6a4 4 0 01-4-4v-4z"/><path d="M10 14h4"/></svg>',
+    paper: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5M9 12h6M9 16h6M9 8h2"/></svg>',
+    protractor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22a10 10 0 1110-10"/><path d="M12 16l6-6M12 12v10"/></svg>',
+    misc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>'
+  };
+
+  // Helper to find the right icon based on the text name
+  function getAppIcon(name) {
+    const n = name.toLowerCase();
+    if (n.includes('stand')) return APPARATUS_ICONS.stand;
+    if (n.includes('bob')) return APPARATUS_ICONS.bob;
+    if (n.includes('thread') || n.includes('string')) return APPARATUS_ICONS.thread;
+    if (n.includes('scale') || n.includes('tape') || n.includes('ruler')) return APPARATUS_ICONS.scale;
+    if (n.includes('stopwatch')) return APPARATUS_ICONS.stopwatch;
+    if (n.includes('battery') || n.includes('supply') || n.includes('eliminator')) return APPARATUS_ICONS.battery;
+    if (n.includes('rheostat') || n.includes('resistor') || n.includes('circuit')) return APPARATUS_ICONS.circuit;
+    if (n.includes('ammeter') || n.includes('voltmeter')) return APPARATUS_ICONS.meter;
+    if (n.includes('wire')) return APPARATUS_ICONS.wire;
+    if (n.includes('beaker') || n.includes('test tube')) return APPARATUS_ICONS.beaker;
+    if (n.includes('burette')) return APPARATUS_ICONS.burette;
+    if (n.includes('flask')) return APPARATUS_ICONS.flask;
+    if (n.includes('pipette') || n.includes('dropper')) return APPARATUS_ICONS.pipette;
+    if (n.includes('lens')) return APPARATUS_ICONS.lens;
+    if (n.includes('laser')) return APPARATUS_ICONS.laser;
+    if (n.includes('burner')) return APPARATUS_ICONS.burner;
+    if (n.includes('goggles')) return APPARATUS_ICONS.goggles;
+    if (n.includes('paper') || n.includes('chart')) return APPARATUS_ICONS.paper;
+    if (n.includes('protractor')) return APPARATUS_ICONS.protractor;
+    return APPARATUS_ICONS.misc;
+  }
   function experimentPage(id) {
     const s = session();
     const exp = experimentById(id);
@@ -1181,10 +1228,21 @@
         ${STEPS.map((st, i) => `<a class="stepper__step" href="#sec-${st.id}" data-step="${st.id}"><span class="num">${i + 1}</span><span>${st.label}</span></a>`).join('')}
       </nav>
 
-      <section class="exp-section panel" id="sec-aim">
+            <section class="exp-section panel" id="sec-aim">
         <h2>Aim</h2>
         <p>${escapeHtml(exp.aim)}</p>
-        <details><summary>Apparatus &amp; materials</summary><ul class="apparatus">${(exp.apparatus || []).map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul></details>
+        
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line);">
+          <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Apparatus Required</h3>
+          <div class="apparatus-grid">
+            ${(exp.apparatus || []).map(item => `
+              <div class="apparatus-card">
+                <div class="apparatus-icon">${getAppIcon(item)}</div>
+                <span class="apparatus-name">${escapeHtml(item)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
       </section>
 
       <section class="exp-section panel" id="sec-theory">
